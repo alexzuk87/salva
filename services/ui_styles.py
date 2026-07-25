@@ -390,7 +390,16 @@ div[data-testid="stMetric"] {
   background: var(--salva-surface); border-radius: 16px; padding: 0.85rem;
   border: 1px solid var(--salva-border); box-shadow: var(--salva-shadow);
 }
-div[data-testid="stMetric"] label { color: var(--salva-muted) !important; }
+div[data-testid="stMetric"] label {
+  color: var(--salva-muted) !important;
+  font-size: 0.75rem !important;
+  line-height: 1.25 !important;
+}
+div[data-testid="stMetric"] [data-testid="stMetricValue"],
+div[data-testid="stMetric"] [data-testid="stMetricValue"] > div {
+  font-size: clamp(1rem, 1.4vw, 1.2rem) !important;
+  line-height: 1.2 !important;
+}
 
 .payment-box { background: var(--salva-bg); border-radius: 16px; padding: 1rem; border: 1px solid var(--salva-border); }
 .alias-display {
