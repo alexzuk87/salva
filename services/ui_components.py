@@ -51,15 +51,15 @@ def _service_category_css(categories) -> str:
         "  50% { transform: translateY(-3px); }",
         "}",
         "@media (prefers-reduced-motion: reduce) {",
-        "  div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) .stButton > button::before {",
+        "  :is(div[data-testid='column'], div[data-testid='stColumn']):has(.svc-cat-marker) .stButton button::before {",
         "    animation: none !important; transform: none !important;",
         "  }",
         "}",
-        "@media (max-width: 480px) {",
-        "  div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) .stButton > button::before {",
+        "@media (max-width: 768px) {",
+        "  :is(div[data-testid='column'], div[data-testid='stColumn']):has(.svc-cat-marker) .stButton button::before {",
         "    width: 26px !important; height: 26px !important;",
         "  }",
-        "  div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) .stButton > button {",
+        "  :is(div[data-testid='column'], div[data-testid='stColumn']):has(.svc-cat-marker) .stButton button {",
         "    min-height: 54px !important; font-size: 0.74rem !important; gap: 8px !important;",
         "  }",
         "}",
@@ -72,8 +72,8 @@ def _service_category_css(categories) -> str:
         accent = CATEGORY_ACCENTS.get(char_key, "#365CF5")
         delay = _CATEGORY_FLOAT_DELAYS.get(char_key, 0.0)
         sel = (
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button, "
-            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button"
+            ":is(div[data-testid='column'], div[data-testid='stColumn'])"
+            f":has(.svc-cat-{char_key}) .stButton button"
         )
         rules.extend([
             f"{sel} {{",
@@ -98,8 +98,7 @@ def _service_category_css(categories) -> str:
             f"  text-overflow: ellipsis !important;",
             f"  transition: border-color 0.2s, background 0.2s !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button::before,",
-            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button::before {{",
+            f"{sel}::before {{",
             f'  content: "" !important;',
             f"  display: inline-block !important;",
             f"  flex-shrink: 0 !important;",
@@ -113,19 +112,16 @@ def _service_category_css(categories) -> str:
             f"  animation-delay: {delay}s !important;",
             f"  will-change: transform !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button:hover,",
-            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button:hover {{",
+            f"{sel}:hover {{",
             f"  border-color: {accent} !important;",
             f"  background: var(--salva-primary-soft) !important;",
             f"  color: var(--salva-text) !important;",
             f"  -webkit-text-fill-color: var(--salva-text) !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button:hover::before,",
-            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button:hover::before {{",
+            f"{sel}:hover::before {{",
             f"  animation-duration: 2.5s !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button p,",
-            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button p {{",
+            f"{sel} p {{",
             f"  margin: 0 !important; color: var(--salva-text) !important;",
             f"  -webkit-text-fill-color: var(--salva-text) !important;",
             f"  white-space: nowrap !important; overflow: hidden !important;",

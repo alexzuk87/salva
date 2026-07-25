@@ -100,8 +100,8 @@ html, body, [class*="css"] {
 }
 
 /* Keep intentional light-on-dark surfaces */
-.stButton > button[kind="primary"],
-.stButton > button[kind="primary"] p,
+.stButton button[kind="primary"],
+.stButton button[kind="primary"] p,
 .step-active,
 .promo-blue, .promo-blue span,
 .chat-user, .chat-user p, .chat-user strong,
@@ -110,13 +110,12 @@ html, body, [class*="css"] {
   -webkit-text-fill-color: var(--salva-primary-foreground) !important;
 }
 
-.stButton > button[kind="secondary"],
-.stButton > button[kind="secondary"] p {
+.stButton button[kind="secondary"],
+.stButton button[kind="secondary"] p {
   color: var(--salva-text) !important;
   -webkit-text-fill-color: var(--salva-text) !important;
 }
 
-.stApp {
 section[data-testid="stSidebar"] { display: none !important; }
 header[data-testid="stHeader"] { background: transparent; }
 .block-container {
@@ -126,7 +125,7 @@ header[data-testid="stHeader"] { background: transparent; }
   padding-left: 1rem !important;
   padding-right: 1rem !important;
 }
-@media (min-width: 768px) { .block-container { padding-bottom: 2rem !important; } }
+@media (min-width: 769px) { .block-container { padding-bottom: 2rem !important; } }
 
 /* Header & logo */
 .salva-header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
@@ -134,17 +133,17 @@ header[data-testid="stHeader"] { background: transparent; }
 .salva-logo-nav-cell { position: relative; min-height: 36px; }
 .logo-wrap { position: relative; display: inline-flex; align-items: center; pointer-events: none; }
 .logo-horizontal svg { width: 140px; height: auto; max-height: 36px; display: block; }
-@media (min-width: 768px) { .logo-horizontal svg { width: 148px; max-height: 38px; } }
-@media (max-width: 767px) {
+@media (min-width: 769px) { .logo-horizontal svg { width: 148px; max-height: 38px; } }
+@media (max-width: 768px) {
   .logo-horizontal svg { width: 110px; max-height: 32px; }
 }
-div[data-testid="column"]:has(.salva-header-brand) {
+:is(div[data-testid="column"], div[data-testid="stColumn"]):has(.salva-header-brand) {
   position: relative !important;
   flex: 0 0 auto !important;
   max-width: 160px !important;
   min-width: 100px !important;
 }
-div[data-testid="column"]:has(.salva-header-brand) .stButton {
+:is(div[data-testid="column"], div[data-testid="stColumn"]):has(.salva-header-brand) .stButton {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
@@ -155,7 +154,7 @@ div[data-testid="column"]:has(.salva-header-brand) .stButton {
   padding: 0 !important;
   z-index: 2 !important;
 }
-div[data-testid="column"]:has(.salva-header-brand) .stButton > button {
+:is(div[data-testid="column"], div[data-testid="stColumn"]):has(.salva-header-brand) .stButton button {
   opacity: 0 !important;
   width: 100% !important;
   height: 100% !important;
@@ -167,14 +166,14 @@ div[data-testid="column"]:has(.salva-header-brand) .stButton > button {
   box-shadow: none !important;
   color: transparent !important;
 }
-div[data-testid="column"]:has(.salva-header-brand) .stButton > button:hover,
-div[data-testid="column"]:has(.salva-header-brand) .stButton > button:active {
+:is(div[data-testid="column"], div[data-testid="stColumn"]):has(.salva-header-brand) .stButton button:hover,
+:is(div[data-testid="column"], div[data-testid="stColumn"]):has(.salva-header-brand) .stButton button:active {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   opacity: 0 !important;
 }
-div[data-testid="column"]:has(.salva-header-brand) .stButton > button:focus-visible {
+:is(div[data-testid="column"], div[data-testid="stColumn"]):has(.salva-header-brand) .stButton button:focus-visible {
   opacity: 0.12 !important;
   outline: 2px solid var(--salva-primary) !important;
   outline-offset: 2px !important;
@@ -208,7 +207,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover {
   background: var(--salva-surface); border-radius: var(--salva-radius); padding: 1.25rem;
   border: 1px solid var(--salva-border); box-shadow: var(--salva-shadow); margin-bottom: 1rem;
 }
-@media (min-width: 768px) { .salva-card { padding: 1.75rem; border-radius: 24px; } }
+@media (min-width: 769px) { .salva-card { padding: 1.75rem; border-radius: 24px; } }
 
 .hero-badge {
   display: inline-block; background: var(--salva-primary-soft); color: var(--salva-primary);
@@ -264,7 +263,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover {
 
 /* Benefits */
 .benefit-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
-@media (min-width: 768px) { .benefit-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 769px) { .benefit-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { .benefit-grid { grid-template-columns: repeat(4, 1fr); } }
 .benefit-card {
   background: var(--salva-surface); border-radius: 16px; padding: 1rem 1.15rem;
@@ -352,22 +351,22 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover {
 .progress-bar-fill { background: var(--salva-primary); height: 100%; border-radius: 999px; }
 
 /* Buttons */
-.stButton > button {
+.stButton button {
   min-height: 44px !important; border-radius: 12px !important; font-weight: 600 !important;
   transition: background 0.15s, border-color 0.15s, transform 0.15s !important;
 }
-.stButton > button[kind="primary"] {
+.stButton button[kind="primary"] {
   background: var(--salva-primary) !important; color: var(--salva-primary-foreground) !important; border: none !important;
   box-shadow: 0 2px 8px rgba(54, 92, 245, 0.25) !important;
 }
-.stButton > button[kind="primary"]:hover {
+.stButton button[kind="primary"]:hover {
   background: var(--salva-primary-hover) !important;
 }
-.stButton > button[kind="secondary"] {
+.stButton button[kind="secondary"] {
   background: var(--salva-surface) !important; color: var(--salva-text) !important;
   border: 1px solid var(--salva-border) !important;
 }
-.stButton > button[kind="secondary"]:hover {
+.stButton button[kind="secondary"]:hover {
   border-color: var(--salva-primary) !important; color: var(--salva-primary) !important;
 }
 .nav-active button {
@@ -408,37 +407,37 @@ div[data-testid="stMetric"] label { color: var(--salva-muted) !important; }
 .main-nav-bottom-sep { border-top: 2px solid var(--salva-border); margin: 1.5rem 0 0.75rem; padding-top: 0.25rem; }
 .salva-nav-marker { display: none !important; }
 .salva-nav-bottom-marker { display: none !important; }
-div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) div[data-testid="stHorizontalBlock"] {
+div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] {
   flex-wrap: nowrap !important;
   gap: 0.35rem !important;
 }
-div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] > :is(div[data-testid="column"], div[data-testid="stColumn"]) {
   flex: 1 1 0 !important; min-width: 0 !important;
 }
-div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) .stButton > button {
+div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) .stButton button {
   font-size: 0.78rem !important; padding: 0.4rem 0.25rem !important;
   white-space: nowrap !important; min-height: 40px !important;
 }
 @media (max-width: 768px) {
-  div[data-testid="stVerticalBlock"]:has(.salva-nav-bottom-marker) {
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-bottom-marker) {
     display: none !important;
   }
-  div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) div[data-testid="stHorizontalBlock"] {
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] {
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 2px;
   }
-  div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) div[data-testid="stHorizontalBlock"]::-webkit-scrollbar {
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"]::-webkit-scrollbar {
     display: none;
   }
-  div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] > :is(div[data-testid="column"], div[data-testid="stColumn"]) {
     flex: 0 0 auto !important;
     min-width: 4.5rem !important;
     max-width: none !important;
   }
-  div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) .stButton > button {
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) .stButton button {
     font-size: 0.62rem !important; padding: 0.28rem 0.35rem !important;
     min-height: 34px !important;
   }
@@ -446,8 +445,39 @@ div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) .stButton > button {
 }
 @media (max-width: 390px) {
   .block-container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
-  div[data-testid="stVerticalBlock"]:has(.salva-nav-marker) .stButton > button {
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) .stButton button {
     font-size: 0.58rem !important; min-height: 32px !important;
+  }
+}
+
+/* —— Desktop guard: evita que reglas mobile afecten desktop —— */
+@media (min-width: 769px) {
+  [data-testid="stAppViewContainer"] .hero-title,
+  [data-testid="stAppViewContainer"] .section-title,
+  [data-testid="stAppViewContainer"] .mh-hero-title,
+  [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] p,
+  [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] li,
+  [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] h1,
+  [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] h2,
+  [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] h3 {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    white-space: normal !important;
+  }
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] {
+    flex-wrap: nowrap !important;
+    overflow-x: visible !important;
+  }
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] > :is(div[data-testid="column"], div[data-testid="stColumn"]) {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) .stButton button {
+    font-size: 0.82rem !important;
+    padding: 0.5rem 0.5rem !important;
+    min-height: 42px !important;
+    white-space: nowrap !important;
   }
 }
 
@@ -461,7 +491,7 @@ div[data-testid="stToolbar"] { display: none; }
 }
 .salva-card-hover { transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; }
 .salva-card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(22,24,29,0.08); border-color: var(--salva-primary); }
-.stButton > button:active { transform: scale(0.98); }
+.stButton button:active { transform: scale(0.98); }
 .fade-in { animation: fadeIn 0.35s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .success-pop { animation: successPop 0.45s ease; }
@@ -521,7 +551,7 @@ div[data-testid="stToolbar"] { display: none; }
 
 /* Time slots */
 .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
-@media (min-width: 768px) { .slot-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 769px) { .slot-grid { grid-template-columns: repeat(4, 1fr); } }
 .slot-btn-wrap { margin-bottom: 0.25rem; }
 
 /* Hero fix */
@@ -534,22 +564,23 @@ div[data-testid="stToolbar"] { display: none; }
 .svc-float, .svc-character { animation: svcFloat 3.2s ease-in-out infinite; }
 .svc-character { display: block; margin: 0 auto; }
 .svc-cat-grid-root, .svc-cat-marker { display: none !important; }
-div[data-testid="stVerticalBlock"]:has(.svc-cat-grid-root) div[data-testid="stHorizontalBlock"] {
+/* Grilla de servicios — scope estricto vía el marcador por columna (sin leak al app-root) */
+div[data-testid="stHorizontalBlock"]:has(.svc-cat-marker) {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   gap: 10px !important;
   width: 100% !important;
 }
-div[data-testid="stVerticalBlock"]:has(.svc-cat-grid-root) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+div[data-testid="stHorizontalBlock"]:has(.svc-cat-marker) > :is(div[data-testid="column"], div[data-testid="stColumn"]) {
   width: auto !important; min-width: 0 !important; flex: unset !important; max-width: none !important;
 }
-@media (max-width: 900px) {
-  div[data-testid="stVerticalBlock"]:has(.svc-cat-grid-root) div[data-testid="stHorizontalBlock"] {
+@media (max-width: 768px) {
+  div[data-testid="stHorizontalBlock"]:has(.svc-cat-marker) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
-@media (min-width: 901px) {
-  div[data-testid="stVerticalBlock"]:has(.svc-cat-grid-root) div[data-testid="stHorizontalBlock"] {
+@media (min-width: 769px) {
+  div[data-testid="stHorizontalBlock"]:has(.svc-cat-marker) {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }

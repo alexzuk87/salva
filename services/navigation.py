@@ -96,10 +96,16 @@ def _nav_button(label: str, key: str, active: bool) -> None:
         go(label)
 
 
-def _nav_row(key_prefix: str, current: str) -> None:
+def _nav_row(key_prefix: str, current: str, position: str) -> None:
     """Una sola fila de navegación — responsive vía CSS (sin duplicar widgets)."""
     with st.container():
-        st.markdown('<span class="salva-nav-marker" aria-hidden="true"></span>', unsafe_allow_html=True)
+        marker_class = "salva-nav-marker"
+        if position == "bottom":
+            marker_class += " salva-nav-bottom-marker"
+        st.markdown(
+            f'<span class="{marker_class}" aria-hidden="true"></span>',
+            unsafe_allow_html=True,
+        )
         cols = st.columns(len(MAIN_NAV))
         for col, label in zip(cols, MAIN_NAV):
             with col:
@@ -114,7 +120,6 @@ def render_main_navigation(position: str, key_prefix: str) -> None:
 
     if position == "bottom":
         st.markdown('<div class="main-nav-bottom-sep"></div>', unsafe_allow_html=True)
-        st.markdown('<span class="salva-nav-bottom-marker" aria-hidden="true"></span>', unsafe_allow_html=True)
 
     if position == "top":
         logo_col, nav_col = st.columns([1.15, 5.85])
@@ -127,6 +132,6 @@ def render_main_navigation(position: str, key_prefix: str) -> None:
             ):
                 go("Inicio")
         with nav_col:
-            _nav_row(key_prefix, current)
+            _nav_row(key_prefix, current, position)
     else:
-        _nav_row(key_prefix, current)
+        _nav_row(key_prefix, current, position)
