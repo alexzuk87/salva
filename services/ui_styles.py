@@ -630,7 +630,28 @@ div[data-testid="stFeedback"] svg { color: #D97706 !important; }
 .mh-card-label { font-size: 0.75rem; font-weight: 700; color: var(--salva-primary); text-transform: uppercase; margin: 0; }
 .mh-balance-card { text-align: center; padding: 1.5rem; }
 .mh-balance-amount { font-size: 2rem; font-weight: 800; color: var(--salva-primary); margin: 0.25rem 0; }
-.mh-preview p { margin: 0.35rem 0; font-size: 0.9rem; }
+.mh-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.mh-summary-item {
+  display: flex; align-items: center; gap: 0.75rem; min-width: 0;
+  padding: 0.85rem; border-radius: 14px; background: var(--salva-bg);
+  border: 1px solid var(--salva-border);
+}
+.mh-summary-item:last-child { grid-column: 1 / -1; }
+.mh-summary-icon {
+  width: 40px; height: 40px; border-radius: 12px; flex: 0 0 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--salva-primary-soft);
+}
+.mh-summary-icon svg { width: 22px; height: 22px; }
+.mh-summary-item strong { display: block; font-size: 0.82rem; margin-bottom: 0.15rem; }
+.mh-summary-item span:not(.mh-summary-icon) {
+  display: block; color: var(--salva-muted); font-size: 0.82rem;
+  line-height: 1.35; overflow-wrap: anywhere;
+}
+@media (max-width: 768px) {
+  .mh-summary-grid { grid-template-columns: 1fr; }
+  .mh-summary-item:last-child { grid-column: auto; }
+}
 .mh-profile-card { margin-bottom: 1rem; }
 .goal-card-v2 { margin-bottom: 1rem; }
 .hist-card { margin-bottom: 0.75rem; }

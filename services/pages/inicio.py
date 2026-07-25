@@ -6,6 +6,7 @@ from services.bookings import list_bookings
 from services.formatting import format_ars
 from services.goals import primary_goal
 from services.home_history import history_summary
+from services.icons import ICONS
 from services.navigation import start_service
 from services.predict import generate_recommendations
 from services.professionals import recommend_professionals
@@ -66,7 +67,11 @@ def render() -> None:
 
     benefit_cards()
 
-    st.markdown('<p class="section-title">Así está tu hogar hoy</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="mh-card-label">MI HOGAR</p>'
+        '<p class="section-title">Así está tu hogar hoy</p>',
+        unsafe_allow_html=True,
+    )
     from services.accounts import account_summary
     from services.navigation import go as nav_go
     mh = account_summary()
@@ -94,12 +99,18 @@ def render() -> None:
         else:
             service_line = "Sin servicios activos"
         st.markdown(
-            f'<div class="mh-preview salva-card">'
-            f'<p><strong>SALVA Cuenta:</strong> {format_ars(mh["cuenta"])}</p>'
-            f'<p><strong>SALVA Ahorro:</strong> {format_ars(mh["ahorro"])}</p>'
-            f'<p><strong>Objetivo principal:</strong> {goal_line}{goal_pct}</p>'
-            f'<p><strong>SALVA Predict:</strong> {predict_line}</p>'
-            f'<p><strong>Servicios:</strong> {service_line}</p>'
+            f'<div class="mh-preview salva-card"><div class="mh-summary-grid">'
+            f'<div class="mh-summary-item"><span class="mh-summary-icon">{ICONS["precio"]}</span>'
+            f'<div><strong>SALVA Cuenta</strong><span>{format_ars(mh["cuenta"])}</span></div></div>'
+            f'<div class="mh-summary-item"><span class="mh-summary-icon">{ICONS["garantia"]}</span>'
+            f'<div><strong>SALVA Ahorro</strong><span>{format_ars(mh["ahorro"])}</span></div></div>'
+            f'<div class="mh-summary-item"><span class="mh-summary-icon">{ICONS["verified"]}</span>'
+            f'<div><strong>Objetivo principal</strong><span>{goal_line}{goal_pct}</span></div></div>'
+            f'<div class="mh-summary-item"><span class="mh-summary-icon">{ICONS["tracking"]}</span>'
+            f'<div><strong>SALVA Predict</strong><span>{predict_line}</span></div></div>'
+            f'<div class="mh-summary-item"><span class="mh-summary-icon">{ICONS["reservas"]}</span>'
+            f'<div><strong>Servicios</strong><span>{service_line}</span></div></div>'
+            f'</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -119,56 +130,38 @@ def render() -> None:
         st.markdown(salvita_html("neutral", "SALVA te salva — organizá tu hogar en un solo lugar."), unsafe_allow_html=True)
 
     st.markdown('<p class="section-title">Profesionales destacados</p>', unsafe_allow_html=True)
-    df = recommend_professionals("Plomería", "Programado", "09:00", province="Ciudad Autónoma de Buenos Aires", locality="Ciudad Autónoma de Buenos Aires").head(2)
-    if df.empty:
+    featured = []
+    featured_ids = set()
+    for service_type in ("Plomería", "Electricidad", "Limpieza", "Climatización"):
+        candidates = recommend_professionals(
+            service_type,
+            "Programado",
+            "09:00",
+            province="Ciudad Autónoma de Buenos Aires",
+            locality="Ciudad Autónoma de Buenos Aires",
+        ).sort_values("rating", ascending=False)
+        for _, candidate in candidates.iterrows():
+            if candidate["id"] not in featured_ids:
+                featured.append(candidate)
+                featured_ids.add(candidate["id"])
+                break
+
+    if not featured:
         st.caption("Explorá categorías para ver profesionales.")
     else:
-        for _, pro in df.iterrows():
+        pro_cols = st.columns(2)
+        for i, pro in enumerate(featured):
             pro_d = pro.to_dict()
             revs = get_reviews_for_professional(pro["id"], 1)
             rh = "".join(
                 review_html(r["customer_name"], r["rating"], r["comment"], r.get("neighborhood", ""))
                 for _, r in revs.iterrows()
             )
-            st.markdown(
-                pro_card_html(pro_d, "tu zona", int(pro["neighborhood_jobs"]), pro["eta_label"], float(pro["estimated_price"]), rh),
-                unsafe_allow_html=True,
-            )
-
-    st.markdown('<p class="section-title">El estado de tu hogar</p>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    bookings = list_bookings()
-    if not bookings.empty and "booking_status" in bookings.columns:
-        upcoming = bookings[bookings["booking_status"].isin(["Confirmada", "Pendiente", "En curso"])]
-    else:
-        upcoming = bookings.iloc[0:0]
-    hist = history_summary()
-    goal = primary_goal()
-    recs = generate_recommendations()
-
-    with c1:
-        if not upcoming.empty:
-            u = upcoming.iloc[0]
-            st.metric("Próximo servicio", u["service_type"])
-            st.caption(u.get("appointment_date") or u.get("preferred_date", "—"))
-        else:
-            st.metric("Próximo servicio", "—")
-            st.caption("Sin reservas activas")
-    with c2:
-        st.metric("Último mantenimiento", hist["last_date"])
-    with c3:
-        if goal:
-            saved = float(goal.get("saved_amount") or 0)
-            st.metric("Objetivo activo", goal["name"][:18])
-            st.caption(format_ars(saved))
-        else:
-            st.metric("Objetivo activo", "—")
-            st.caption("Creá uno en Mi hogar")
-    with c4:
-        nxt = recs[0]["title"][:22] if recs else "—"
-        st.metric("Próximo mantenimiento", nxt)
-        if recs:
-            st.caption(recs[0]["priority"])
+            with pro_cols[i % 2]:
+                st.markdown(
+                    pro_card_html(pro_d, "tu zona", int(pro["neighborhood_jobs"]), pro["eta_label"], float(pro["estimated_price"]), rh),
+                    unsafe_allow_html=True,
+                )
 
     st.markdown(
         '<div class="sim-banner">Prototipo académico SALVA — datos y verificaciones simuladas.</div>',
