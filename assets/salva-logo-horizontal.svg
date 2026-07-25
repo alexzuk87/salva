@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" fill="none" role="img" aria-label="SALVA">
+  <path d="M20 6L32 16V34H24V25H16V34H8V16L20 6Z" stroke="#365CF5" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M28 12L30.8 14.8L35 10.5" stroke="#18A875" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="46" y="28" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#365CF5" letter-spacing="-0.5">SALVA</text>
+</svg>

@@ -1,0 +1,9 @@
+id,booking_id,date,neighborhood,service_category,reported_problem,work_completed,professional_name,final_price,rating,guarantee_status,notes
+LH001,BK001,2026-07-24,Palermo,Plomería,fuga,Canilla reparada,María González,85000.0,5,Cobertura activa,Bien
+LH002,BK007,2026-07-25,Palermo,Plomería,Pérdida,Reparación de pérdida,María González,85000.0,5,Cobertura activa,Excelente trabajo de prueba
+LH003,BK010,2026-07-25,Palermo,Plomería,Pérdida,Reparación de pérdida de agua.,María González,85000.0,5,Cobertura activa,"Recomendable, cumplió con lo acordado."
+LH004,BK011,2026-07-25,,Plomería,se exploto en mil pedazos la entrada y volaron los caños,me renovo la entrada y los caños de plastico duraran años,Lucía Fernández,78000.0,5,Cobertura activa,excelente lucia
+LH005,BK009,2026-07-25,barrio chaco,Plomería,pjojoi,limpio todo,Sofía Navarro,113850.00000000001,5,Cobertura activa,Sin comentario adicional.
+LH006,BK012,2026-07-25,villa urzquiza,Pintura,"necesito pintar una cocina, medida 3 x 4 mts",limpieza excelsa y terminaciones divinas,Ana Torres,65000.0,4,Cobertura activa,buen trabajo de ana torres
+LH007,BK013,2026-07-25,villa crespo,Reparación de electrodomésticos,reparar la plancha,reparo la plancha a la perfeccion,Carlos Ruiz,95000.0,5,Cobertura activa,excelente servicio
+LH008,BK014,2026-07-25,Villa Lugano,Mantenimiento general,se me cae el techo de pino,reparacion techo pino,Ricardo Moya,58000.0,4,Cobertura activa,Sin comentario adicional.

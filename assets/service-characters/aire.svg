@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64" class="svc-float" style="animation-delay:0.3500000000000001s"><path d="M6 14 L16 6 L26 14 Z" fill="#1E40AF"/><rect x="8" y="14" width="16" height="12" rx="3" fill="#7DD3FC" opacity="0.9"/><circle cx="13" cy="18" r="1.2" fill="#fff"/><circle cx="19" cy="18" r="1.2" fill="#fff"/><path class="svc-anim-air" d="M20 10 Q24 12 20 14 M24 10 Q28 12 24 14" stroke="#7DD3FC" fill="none"/></svg>

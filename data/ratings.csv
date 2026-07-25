@@ -1,0 +1,9 @@
+booking_id,rating,comment,completion_photo_note,warranty_requested,warranty_status,warranty_notes,submitted_at
+BK001,5,Bien,,False,No solicitada,,2026-07-24 07:51
+BK007,5,Excelente trabajo de prueba,,False,No solicitada,,2026-07-25 11:23
+BK010,5,"Recomendable, cumplió con lo acordado.",,False,No solicitada,,2026-07-25 11:52
+BK011,5,excelente lucia,,False,No solicitada,,2026-07-25 11:57
+BK009,5,Sin comentario adicional.,,False,No solicitada,,2026-07-25 11:58
+BK012,4,buen trabajo de ana torres,,False,No solicitada,,2026-07-25 14:24
+BK013,5,excelente servicio,,False,No solicitada,,2026-07-25 14:43
+BK014,4,Sin comentario adicional.,,False,No solicitada,,2026-07-25 14:55

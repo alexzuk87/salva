@@ -1,0 +1,17 @@
+id,booking_id,professional_id,customer_name,rating,comment,neighborhood,service_type,created_at,verified
+REV001,,PRO001,Lucía Fernández,5,Solucionó la pérdida al toque. Muy prolija.,Palermo,Plomería,2026-04-12,True
+REV002,,PRO001,Martín Acosta,5,Precio justo y trabajo garantizado.,Recoleta,Climatización,2026-03-28,True
+REV003,,PRO002,Jorge Pérez,5,Instaló tomas nuevas sin desorden.,Villa Crespo,Electricidad,2026-05-01,True
+REV004,,PRO002,Silvia Ramos,5,Reparó la heladera el mismo día.,Palermo,Reparación de electrodomésticos,2026-04-20,True
+REV005,,PRO003,Paula Méndez,5,Dejó el departamento impecable.,Recoleta,Limpieza,2026-05-10,True
+REV006,,PRO006,Diego Castro,5,Emergencia resuelta en menos de 1 hora.,Palermo,Climatización,2026-05-18,True
+REV007,,PRO006,Valentina Ruiz,5,Precio transparente y puntual.,Recoleta,Electricidad,2026-04-25,True
+REV008,,PRO004,Gabriela Soto,5,Transformó el jardín. Súper recomendable.,Belgrano,Jardinería,2026-04-08,True
+REV009,,PRO001,Test,5,Bien,Palermo,Plomería,2026-07-24,True
+REV010,BK007,PRO001,Test User,5,Excelente trabajo de prueba,Ciudad Autónoma de Buenos Aires,Plomería,2026-07-25,True
+REV011,BK010,PRO001,Test Review,5,"Recomendable, cumplió con lo acordado.",CABA,Plomería,2026-07-25,True
+REV012,BK011,PRO009,hector arancibia,5,excelente lucia,Puerto Madryn,Plomería,2026-07-25,True
+REV013,BK009,PRO015,lito vitae,5,Sin comentario adicional.,San Luis,Plomería,2026-07-25,True
+REV014,BK012,PRO003,osvaldo ardiles,4,buen trabajo de ana torres,Ciudad Autónoma de Buenos Aires,Pintura,2026-07-25,True
+REV015,BK013,PRO002,oscar nuñez,5,excelente servicio,Ciudad Autónoma de Buenos Aires,Reparación de electrodomésticos,2026-07-25,True
+REV016,BK014,PRO016,olga battica,4,Sin comentario adicional.,Ciudad Autónoma de Buenos Aires,Mantenimiento general,2026-07-25,True

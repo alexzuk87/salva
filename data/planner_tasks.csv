@@ -1,0 +1,12 @@
+id,title,reason,priority_bucket,estimated_cost,recommended_date,preparation_status,related_goal_id,source,postponed_until,created_at
+PL001,Pintar,Humedad,Más adelante,80000,2026-08-15,Sin preparar,,Manual,2026-08-23,2026-07-24
+PL002,Inspección anual de instalación de gas,Tu vivienda tiene gas — revisión recomendada por seguridad.,Urgente,57500.0,2026-08-07,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL003,Service de aire acondicionado,Mantenimiento preventivo según perfil del hogar.,Este mes,32500.0,2026-08-14,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL004,Revisar calefón antes del invierno,Evita fallas en temporada de frío,Urgente,65000.0,2026-08-23,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL005,Controlar instalación eléctrica,Seguridad y prevención de cortocircuitos,Urgente,52500.0,2026-08-23,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL006,Limpiar filtros del aire acondicionado,Mejora eficiencia y calidad del aire,Este mes,25000.0,2026-09-22,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL007,Revisar pérdidas de agua,Ahorro y prevención de daños,Este mes,40000.0,2026-09-22,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL008,Pintura preventiva por humedad,Protege muros y evita moho,Próximos 3 meses,115000.0,2026-09-22,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL009,Seguimiento post-Plomería,Último servicio: Canilla reparada,Este mes,45000.0,2026-10-22,Sin preparar,,Recomendación orientativa generada por SALVA.,,2026-07-24
+PL010,Servicio pendiente: Plomería,se me inundo la cocina,Urgente,97750.0,2026-07-31,Reservado,,Reserva SALVA,,2026-07-24
+PL011,Servicio pendiente: Electricidad,pjojoi,Urgente,86250.0,2026-07-31,Reservado,,Reserva SALVA,,2026-07-25

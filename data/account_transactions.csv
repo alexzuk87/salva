@@ -1,0 +1,32 @@
+transaction_id,user_id,source_account,destination_account,transaction_type,amount,booking_id,goal_id,created_at,status,description
+TX001,default,externo,SALVA_CUENTA,deposito,5000,,,2026-07-25 11:52,Completada,Ingreso simulado a SALVA Cuenta
+TX002,default,SALVA_CUENTA,SALVA_AHORRO,transferencia,3000,,,2026-07-25 11:52,Completada,Test transfer
+TX003,default,SALVA_CUENTA,servicio,pago_servicio,78000.0,BK011,,2026-07-25 11:56,Completada,Pago servicio Plomería
+TX004,default,SALVA_CUENTA,servicio,pago_servicio,65000.0,BK012,,2026-07-25 14:23,Completada,Pago servicio Pintura
+TX005,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX006,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX007,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX008,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX009,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX010,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX011,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX012,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX013,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX014,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:29,Completada,Asignación a SALVA Objetivo
+TX015,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:30,Completada,Asignación a SALVA Objetivo
+TX016,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:30,Completada,Asignación a SALVA Objetivo
+TX017,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:30,Completada,Asignación a SALVA Objetivo
+TX018,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:30,Completada,Asignación a SALVA Objetivo
+TX019,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:30,Completada,Asignación a SALVA Objetivo
+TX020,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:30,Completada,Asignación a SALVA Objetivo
+TX021,default,SALVA_AHORRO,objetivo,asignacion_objetivo,5000.0,,GO001,2026-07-25 14:30,Completada,Asignación a SALVA Objetivo
+TX022,default,externo,SALVA_CUENTA,deposito,10000,,,2026-07-25 14:38,Completada,Ingreso simulado a SALVA Cuenta
+TX023,default,SALVA_CUENTA,SALVA_AHORRO,transferencia,3000,,,2026-07-25 14:38,Completada,Test transfer
+TX024,default,externo,SALVA_CUENTA,deposito,10000,,,2026-07-25 14:38,Completada,Ingreso simulado a SALVA Cuenta
+TX025,default,SALVA_CUENTA,SALVA_AHORRO,transferencia,3000,,,2026-07-25 14:38,Completada,Test transfer
+TX026,default,SALVA_CUENTA,SALVA_AHORRO,transferencia,5000,,,2026-07-25 14:38,Completada,Fondo para objetivo test
+TX027,default,externo,SALVA_CUENTA,deposito,10000,,,2026-07-25 14:38,Completada,Ingreso simulado a SALVA Cuenta
+TX028,default,SALVA_CUENTA,SALVA_AHORRO,transferencia,3000,,,2026-07-25 14:38,Completada,Test transfer
+TX029,default,ahorro_no_asignado,objetivo,asignacion_objetivo,2000.0,,GO001,2026-07-25 14:38,Completada,Asignación de ahorro no asignado a SALVA Objetivo
+TX030,default,externo,SALVA_CUENTA,deposito,21000.0,,,2026-07-25 14:43,Completada,Ingreso simulado a SALVA Cuenta
+TX031,default,externo,SALVA_CUENTA,deposito,1000000.0,,,2026-07-25 14:55,Completada,Ingreso simulado a SALVA Cuenta

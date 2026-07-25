@@ -1,0 +1,4 @@
+id,booking_id,category,description,evidence_note,requested_resolution,status,created_at
+RC001,BK001,Otro,test,,revision,Reclamo iniciado,2026-07-24 07:51
+RC002,161623,Trabajo incompleto,no cumplio las expectativas,,,Reclamo iniciado,2026-07-24 08:59
+RC003,161623,Trabajo incompleto,no cumplio las expectativas,,,Reclamo iniciado,2026-07-24 08:59
