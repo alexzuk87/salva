@@ -114,6 +114,7 @@ def render_main_navigation(position: str, key_prefix: str) -> None:
 
     if position == "bottom":
         st.markdown('<div class="main-nav-bottom-sep"></div>', unsafe_allow_html=True)
+        st.markdown('<span class="salva-nav-bottom-marker" aria-hidden="true"></span>', unsafe_allow_html=True)
 
     if position == "top":
         logo_col, nav_col = st.columns([1.15, 5.85])

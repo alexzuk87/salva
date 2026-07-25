@@ -38,36 +38,14 @@ _CATEGORY_FLOAT_DELAYS = {
 
 
 def _svg_data_uri(path: Path) -> str:
-    from urllib.parse import quote
-    raw = path.read_text(encoding="utf-8")
-    if raw.startswith("<?xml"):
-        raw = raw.split(">", 1)[-1].strip()
-    return f"data:image/svg+xml,{quote(raw, safe='')}"
+    """Data URI base64 — compatible con Streamlit Community Cloud en CSS."""
+    b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:image/svg+xml;base64,{b64}"
 
 
 def _service_category_css(categories) -> str:
-    """CSS dinámico: botón compacto con ícono inline + nombre en una línea."""
+    """CSS dinámico: botón compacto con ícono inline (base64) + nombre."""
     rules = [
-        "div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) "
-        "div[data-testid='stHorizontalBlock'] { gap: 12px !important; flex-wrap: wrap !important; }",
-        "div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) "
-        "div[data-testid='stHorizontalBlock'] > div[data-testid='column'] { padding: 0 !important; }",
-        "div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) .stButton { width: 100% !important; }",
-        "@media (min-width: 901px) {",
-        "  div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) "
-        "div[data-testid='stHorizontalBlock'] > div[data-testid='column'] "
-        "{ flex: 1 1 calc(25% - 12px) !important; max-width: calc(25% - 9px) !important; }",
-        "}",
-        "@media (min-width: 601px) and (max-width: 900px) {",
-        "  div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) "
-        "div[data-testid='stHorizontalBlock'] > div[data-testid='column'] "
-        "{ flex: 1 1 calc(33.33% - 12px) !important; max-width: calc(33.33% - 9px) !important; }",
-        "}",
-        "@media (max-width: 600px) {",
-        "  div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) "
-        "div[data-testid='stHorizontalBlock'] > div[data-testid='column'] "
-        "{ flex: 1 1 calc(50% - 8px) !important; max-width: calc(50% - 6px) !important; }",
-        "}",
         "@keyframes svcIconFloat {",
         "  0%, 100% { transform: translateY(0); }",
         "  50% { transform: translateY(-3px); }",
@@ -82,7 +60,7 @@ def _service_category_css(categories) -> str:
         "    width: 26px !important; height: 26px !important;",
         "  }",
         "  div[data-testid='stVerticalBlock']:has(.svc-cat-grid-root) .stButton > button {",
-        "    min-height: 54px !important; font-size: 0.76rem !important; gap: 8px !important;",
+        "    min-height: 54px !important; font-size: 0.74rem !important; gap: 8px !important;",
         "  }",
         "}",
     ]
@@ -93,8 +71,12 @@ def _service_category_css(categories) -> str:
         uri = _svg_data_uri(path)
         accent = CATEGORY_ACCENTS.get(char_key, "#365CF5")
         delay = _CATEGORY_FLOAT_DELAYS.get(char_key, 0.0)
+        sel = (
+            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button, "
+            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button"
+        )
         rules.extend([
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button {{",
+            f"{sel} {{",
             f"  display: inline-flex !important;",
             f"  flex-direction: row !important;",
             f"  align-items: center !important;",
@@ -105,6 +87,7 @@ def _service_category_css(categories) -> str:
             f"  border-radius: 16px !important;",
             f"  box-shadow: none !important;",
             f"  color: var(--salva-text) !important;",
+            f"  -webkit-text-fill-color: var(--salva-text) !important;",
             f"  min-height: 58px !important;",
             f"  padding: 10px 12px !important;",
             f"  font-weight: 700 !important;",
@@ -115,31 +98,38 @@ def _service_category_css(categories) -> str:
             f"  text-overflow: ellipsis !important;",
             f"  transition: border-color 0.2s, background 0.2s !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button::before {{",
+            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button::before,",
+            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button::before {{",
             f'  content: "" !important;',
             f"  display: inline-block !important;",
             f"  flex-shrink: 0 !important;",
             f"  width: 30px !important;",
             f"  height: 30px !important;",
-            f'  background: url("{uri}") center/contain no-repeat !important;',
+            f"  background-image: url('{uri}') !important;",
+            f"  background-repeat: no-repeat !important;",
+            f"  background-position: center !important;",
+            f"  background-size: contain !important;",
             f"  animation: svcIconFloat 3.2s ease-in-out infinite alternate !important;",
             f"  animation-delay: {delay}s !important;",
             f"  will-change: transform !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button:hover {{",
+            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button:hover,",
+            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button:hover {{",
             f"  border-color: {accent} !important;",
             f"  background: var(--salva-primary-soft) !important;",
+            f"  color: var(--salva-text) !important;",
+            f"  -webkit-text-fill-color: var(--salva-text) !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button:hover::before {{",
+            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button:hover::before,",
+            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button:hover::before {{",
             f"  animation-duration: 2.5s !important;",
             f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button:active {{",
-            f"  border-color: var(--salva-primary) !important;",
-            f"  box-shadow: 0 0 0 2px var(--salva-primary-soft) !important;",
-            f"}}",
-            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button p {{",
-            f"  margin: 0 !important; white-space: nowrap !important;",
-            f"  overflow: hidden !important; text-overflow: ellipsis !important;",
+            f"div[data-testid='column']:has(.svc-cat-{char_key}) .stButton > button p,",
+            f"div[data-testid='stVerticalBlock']:has(.svc-cat-{char_key}) .stButton > button p {{",
+            f"  margin: 0 !important; color: var(--salva-text) !important;",
+            f"  -webkit-text-fill-color: var(--salva-text) !important;",
+            f"  white-space: nowrap !important; overflow: hidden !important;",
+            f"  text-overflow: ellipsis !important;",
             f"}}",
         ])
     return f"<style>{''.join(rules)}</style>"
