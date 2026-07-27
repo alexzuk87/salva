@@ -419,6 +419,10 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] > div {
 div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] {
   flex-wrap: nowrap !important;
   gap: 0.35rem !important;
+  width: 100% !important;
+  max-width: 34rem !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] > :is(div[data-testid="column"], div[data-testid="stColumn"]) {
   flex: 1 1 0 !important; min-width: 0 !important;
@@ -433,8 +437,8 @@ div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .
   }
   div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] {
     flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: visible !important;
+    max-width: none !important;
     scrollbar-width: none;
     padding-bottom: 2px;
   }
@@ -442,8 +446,8 @@ div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .
     display: none;
   }
   div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) div[data-testid="stHorizontalBlock"] > :is(div[data-testid="column"], div[data-testid="stColumn"]) {
-    flex: 0 0 auto !important;
-    min-width: 4.5rem !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     max-width: none !important;
   }
   div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-nav-marker) .stButton button {
@@ -628,6 +632,10 @@ div[data-testid="stFeedback"] svg { color: #D97706 !important; }
 /* Mi hogar */
 .mh-hero-title { font-size: 1.5rem; font-weight: 800; margin: 0.25rem 0; }
 .mh-card-label { font-size: 0.75rem; font-weight: 700; color: var(--salva-primary); text-transform: uppercase; margin: 0; }
+.mh-profile-name {
+  color: var(--salva-text) !important; font-size: 1.25rem !important;
+  font-weight: 800; line-height: 1.25; margin: 0 0 0.35rem !important;
+}
 .mh-balance-card { text-align: center; padding: 1.5rem; }
 .mh-balance-amount { font-size: 2rem; font-weight: 800; color: var(--salva-primary); margin: 0.25rem 0; }
 .mh-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
@@ -651,6 +659,13 @@ div[data-testid="stFeedback"] svg { color: #D97706 !important; }
 @media (max-width: 768px) {
   .mh-summary-grid { grid-template-columns: 1fr; }
   .mh-summary-item:last-child { grid-column: auto; }
+  .mh-hero-title { font-size: 1.3rem; }
+  [data-testid="stTabs"] [data-baseweb="tab-list"] {
+    flex-wrap: nowrap !important; overflow-x: visible !important;
+  }
+  [data-testid="stTabs"] [data-baseweb="tab"] {
+    flex: 1 1 0; min-width: 0; padding-left: 0.4rem; padding-right: 0.4rem;
+  }
 }
 .mh-profile-card { margin-bottom: 1rem; }
 .goal-card-v2 { margin-bottom: 1rem; }

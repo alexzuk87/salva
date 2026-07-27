@@ -2,11 +2,33 @@
 
 import streamlit as st
 
-from services.bookings import PAYMENT_CONFIRMED, appointment_label, get_booking, list_bookings
+from services.bookings import (
+    PAYMENT_CONFIRMED,
+    appointment_label,
+    flow_step_for_booking,
+    get_booking,
+    list_bookings,
+)
 from services.formatting import format_ars
 from services.navigation import start_service
 from services.professionals import get_professional
 from services.ui_components import empty_state, render_chat_panel
+
+
+def open_booking_in_services(booking: dict) -> None:
+    """Reingresa al flujo transaccional sin duplicar su lógica."""
+    st.session_state.active_booking_id = booking["id"]
+    st.session_state.created_booking_id = booking["id"]
+    st.session_state.pending_payment_booking_id = booking["id"]
+    st.session_state.flow_step = flow_step_for_booking(booking)
+    st.session_state.section = "Servicios"
+    st.rerun()
+
+
+def open_booking_chat(booking_id: str) -> None:
+    st.session_state.chat_booking_id = booking_id
+    st.session_state.show_chat_res = booking_id
+    st.rerun()
 
 
 def render() -> None:
@@ -34,23 +56,11 @@ def render() -> None:
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("Ver seguimiento", key=f"trk_{b['id']}", use_container_width=True):
-                    st.session_state.active_booking_id = b["id"]
-                    st.session_state.section = "Servicios"
-                    st.session_state.created_booking_id = b["id"]
-                    status = b.get("service_status", "")
-                    if status == "Servicio finalizado":
-                        st.session_state.flow_step = 6
-                    elif b.get("payment_status") == PAYMENT_CONFIRMED:
-                        st.session_state.flow_step = 5
-                    else:
-                        st.session_state.flow_step = 4
-                    st.rerun()
+                    open_booking_in_services(b.to_dict())
             with c2:
                 if str(b.get("chat_enabled", "")).lower() in ("true", "1", "yes") or b.get("payment_status") == PAYMENT_CONFIRMED:
                     if st.button("Chatear con el profesional", key=f"chat_{b['id']}", use_container_width=True):
-                        st.session_state.chat_booking_id = b["id"]
-                        st.session_state.show_chat_res = b["id"]
-                        st.rerun()
+                        open_booking_chat(b["id"])
             if st.session_state.get("show_chat_res") == b["id"]:
                 booking = get_booking(b["id"])
                 pro = get_professional(b["professional_id"]) or {}

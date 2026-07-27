@@ -8,8 +8,9 @@ from services.data_store import HOME_PROFILES_FILE, read_csv, write_csv
 from services.home_history import load_history
 
 PROFILE_COLUMNS = [
-    "id", "home_type", "age_years", "rooms", "has_gas",
-    "has_ac", "last_electrical_review", "neighborhood", "updated_at",
+    "id", "first_name", "last_name", "home_type", "age_years", "rooms",
+    "has_gas", "has_ac", "last_electrical_review", "province", "locality",
+    "neighborhood", "address", "updated_at",
 ]
 
 GENERAL_TIPS = [
@@ -28,18 +29,37 @@ def load_profile() -> dict | None:
     return df.iloc[-1].to_dict()
 
 
-def save_profile(home_type: str, age: int, rooms: int, has_gas: bool,
-                 has_ac: bool, last_electrical: int, neighborhood: str) -> dict:
+def save_profile(
+    home_type: str,
+    age: int,
+    rooms: int,
+    has_gas: bool,
+    has_ac: bool,
+    last_electrical: int,
+    neighborhood: str,
+    *,
+    first_name: str | None = None,
+    last_name: str | None = None,
+    province: str | None = None,
+    locality: str | None = None,
+    address: str | None = None,
+) -> dict:
     from datetime import datetime
+    current = load_profile() or {}
     row = {
         "id": "HP001",
+        "first_name": current.get("first_name", "") if first_name is None else first_name,
+        "last_name": current.get("last_name", "") if last_name is None else last_name,
         "home_type": home_type,
         "age_years": str(age),
         "rooms": str(rooms),
         "has_gas": str(has_gas),
         "has_ac": str(has_ac),
         "last_electrical_review": str(last_electrical),
+        "province": current.get("province", "") if province is None else province,
+        "locality": current.get("locality", "") if locality is None else locality,
         "neighborhood": neighborhood,
+        "address": current.get("address", "") if address is None else address,
         "updated_at": datetime.now().strftime("%Y-%m-%d"),
     }
     write_csv(HOME_PROFILES_FILE, pd.DataFrame([row]))
@@ -92,6 +112,24 @@ def generate_recommendations() -> list[dict]:
         })
 
     return recs[:8]
+
+
+def recommendation_service_type(recommendation: dict) -> str:
+    """Mapea una recomendación Predict a una categoría válida de Servicios."""
+    text = f"{recommendation.get('title', '')} {recommendation.get('reason', '')}".lower()
+    mappings = (
+        (("agua", "pérdida", "cañería", "calefón"), "Plomería"),
+        (("eléctric", "cortocircuit"), "Electricidad"),
+        (("aire acondicionado", "filtro", "gas", "climatización"), "Climatización"),
+        (("pintura", "humedad", "muro"), "Pintura"),
+        (("limpieza",), "Limpieza"),
+        (("jardín", "jardiner"), "Jardinería"),
+        (("electrodoméstico",), "Reparación de electrodomésticos"),
+    )
+    for keywords, service_type in mappings:
+        if any(keyword in text for keyword in keywords):
+            return service_type
+    return "Mantenimiento general"
 
 
 def predict_intro() -> str:

@@ -58,6 +58,10 @@ def assign_from_ahorro(goal_id: str, amount: float) -> tuple[bool, str]:
     key = f"assign_{goal_id}_{amount}"
     if st.session_state.get(key):
         return False, "Esta asignación ya fue registrada."
+    df = load_goals()
+    idx = df[df["id"] == goal_id].index
+    if idx.empty:
+        return False, "Objetivo no encontrado."
     free = unassigned_savings()
     if free < amount:
         return False, (
@@ -68,16 +72,13 @@ def assign_from_ahorro(goal_id: str, amount: float) -> tuple[bool, str]:
         "ahorro_no_asignado", "objetivo", "asignacion_objetivo", amount,
         "Asignación de ahorro no asignado a SALVA Objetivo", goal_id=goal_id,
     )
-    df = load_goals()
-    idx = df[df["id"] == goal_id].index
-    if idx.empty:
-        return False, "Objetivo no encontrado."
     current = float(df.loc[idx, "saved_amount"].iloc[0] or 0)
     df.loc[idx, "saved_amount"] = str(current + amount)
     target = float(df.loc[idx, "target_amount"].iloc[0] or 0)
     if current + amount >= target:
         df.loc[idx, "status"] = "Completado"
     write_csv(SAVINGS_GOALS_FILE, df)
+    st.session_state[key] = True
     return True, ""
 
 

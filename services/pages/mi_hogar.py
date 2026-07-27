@@ -16,24 +16,43 @@ from services.accounts import (
     SIM_DISCLAIMER,
     account_summary,
     deposit_cuenta,
-    get_balance,
     load_transactions,
     receipt_html,
     transfer,
-    unassigned_savings,
 )
-from services.bookings import appointment_label, list_bookings
+from services.bookings import (
+    PAYMENT_CONFIRMED,
+    SERVICE_STATUS_FLOW,
+    appointment_label,
+    get_booking,
+    list_bookings,
+    split_bookings_for_home,
+)
 from services.formatting import format_ars
 from services.goals import assign_from_ahorro, create_goal, load_goals, primary_goal
-from services.home_history import filter_history, history_summary, load_history
-from services.navigation import go, start_service
-from services.planner import add_manual_task
-from services.predict import generate_recommendations, load_profile, narrative_phrases, predict_intro, save_profile
-from services.pro_photos import render_pro_avatar
+from services.home_history import history_summary, load_history
+from services.navigation import start_service
+from services.planner import add_manual_task, load_tasks
+from services.predict import (
+    generate_recommendations,
+    load_profile,
+    narrative_phrases,
+    predict_intro,
+    recommendation_service_type,
+)
 from services.professionals import SERVICE_TYPES, get_professional
 from services.salvita import salvita_html
+from services.salva_pay import payment_summary
 from services.service_characters import SERVICE_ICON_KEY, character_image_path
-from services.ui_components import empty_state
+from services.ui_components import (
+    booking_receipt_html,
+    render_chat_panel,
+    tracking_road_html,
+)
+from services.pages.garantia import render_complaint_form, render_complaints_list
+from services.pages.pagos import render_financing_simulator
+from services.pages.perfil import profile_with_booking_fallback, render_profile_editor
+from services.pages.reservas import open_booking_chat, open_booking_in_services
 
 
 def _home_status(recs, upcoming, hist) -> tuple[str, str]:
@@ -55,117 +74,296 @@ def render() -> None:
     goal = primary_goal()
     hist = history_summary()
     recs = generate_recommendations()
-    profile = load_profile() or {}
-    bookings = list_bookings()
-    active_statuses = ["Turno reservado", "Reserva confirmada", "En seguimiento", "Confirmada", "En curso"]
-    upcoming = bookings[bookings["booking_status"].isin(active_statuses)] if not bookings.empty else bookings
-    status, reason = _home_status(recs, upcoming, hist)
+    profile = profile_with_booking_fallback(load_profile() or {})
+    if profile.get("first_name") and not st.session_state.get("profile_first_name"):
+        st.session_state.profile_first_name = profile["first_name"]
+    if profile.get("last_name") and not st.session_state.get("profile_last_name"):
+        st.session_state.profile_last_name = profile["last_name"]
+    full_name = f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip()
+    bookings = list_bookings(full_name) if full_name else list_bookings()
+    groups = split_bookings_for_home(bookings)
+    active = groups["en_curso"]
+    upcoming = groups["proximos"]
+    status_source = active if not active.empty else upcoming
+    status, reason = _home_status(recs, status_source, hist)
 
     st.markdown(
         '<h2 class="mh-hero-title">Tu hogar, organizado con SALVA.</h2>'
-        '<p class="body-text">Consultá tus saldos, prepará proyectos, anticipá mantenimientos '
-        "y revisá todo lo que pasó en tu hogar.</p>",
+        '<p class="body-text">Gestioná servicios, dinero, objetivos, recomendaciones e historial '
+        "desde un solo lugar.</p>",
         unsafe_allow_html=True,
     )
     st.markdown(f'<div class="sim-banner">{SIM_DISCLAIMER}</div>', unsafe_allow_html=True)
 
-    # A — Resumen del hogar
-    _scroll_anchor("resumen")
-    st.markdown("### Así está tu hogar")
+    _render_profile_and_home(profile, status, reason)
+    _render_next_section(active, upcoming, recs)
+    _render_services_section(groups)
+    _render_finances_section(summary, upcoming, goal)
+    _render_projects_and_recommendations(goal, recs, profile, summary)
+
+
+def _render_profile_and_home(profile: dict, status: str, reason: str) -> None:
+    _scroll_anchor("perfil-vivienda")
+    st.markdown("### Perfil y vivienda")
     with st.container(border=True):
-        c1, c2 = st.columns([1, 4])
+        c1, c2 = st.columns([4, 1])
         with c1:
-            st.markdown(salvita_html("neutral", ""), unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"**{profile.get('home_type', 'Mi departamento')}**")
+            name = f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip() or "Completá tu nombre"
+            location = ", ".join(
+                p for p in [profile.get("address"), profile.get("locality"), profile.get("province")] if p
+            ) or "Dirección principal pendiente"
+            st.markdown(f'<p class="mh-profile-name">{name}</p>', unsafe_allow_html=True)
             st.caption(
-                f"{profile.get('neighborhood', 'Buenos Aires')} · "
-                f"{profile.get('home_type', 'Departamento')} · "
-                f"{profile.get('age_years', '10')} años aprox."
+                f"{profile.get('home_type') or 'Vivienda sin definir'} · "
+                f"{profile.get('locality') or profile.get('neighborhood') or 'Localidad pendiente'}"
             )
+            st.caption(location)
             st.markdown(f"**Estado general:** {status}")
             st.caption(reason)
-            if not upcoming.empty:
-                u = upcoming.iloc[0]
-                st.caption(f"**Próximo servicio:** {u['service_type']} · {appointment_label(u.to_dict())}")
-            if hist["total"]:
-                last = load_history().iloc[0]
-                st.caption(f"**Garantía activa:** {last.get('guarantee_status', 'Vigente')}")
-        st.metric("Fondos totales del hogar", format_ars(summary["total"]))
-        st.caption(f"SALVA Cuenta + SALVA Ahorro = {format_ars(summary['cuenta'])} + {format_ars(summary['ahorro'])}")
+        with c2:
+            st.markdown(salvita_html("neutral", ""), unsafe_allow_html=True)
+        with st.expander("Editar perfil"):
+            render_profile_editor(profile, "mh_profile")
 
-    # B — Resumen financiero
+
+def _render_next_section(active, upcoming, recs) -> None:
+    _scroll_anchor("lo-proximo")
+    st.markdown("### Lo próximo")
+    cards = st.columns(3)
+    with cards[0]:
+        with st.container(border=True):
+            st.markdown("**Servicio en curso**")
+            if active.empty:
+                st.caption("No hay servicios en curso.")
+                if st.button("Solicitar servicio", key="mh_next_start", use_container_width=True):
+                    start_service()
+            else:
+                booking = active.iloc[0].to_dict()
+                st.markdown(booking["service_type"])
+                st.caption(f"{booking['professional_name']} · {booking.get('service_status', '—')}")
+                if st.button("Ver seguimiento", key="mh_next_track", use_container_width=True):
+                    open_booking_in_services(booking)
+                if booking.get("payment_status") == PAYMENT_CONFIRMED and st.button(
+                    "Abrir chat", key="mh_next_chat", use_container_width=True
+                ):
+                    st.session_state.mh_chat_location = "next"
+                    open_booking_chat(booking["id"])
+                if (
+                    st.session_state.get("show_chat_res") == booking["id"]
+                    and st.session_state.get("mh_chat_location") == "next"
+                ):
+                    with st.expander("Chat con el profesional", expanded=True):
+                        render_chat_panel(
+                            booking,
+                            get_professional(booking.get("professional_id", "")) or {},
+                        )
+    with cards[1]:
+        with st.container(border=True):
+            st.markdown("**Próxima reserva**")
+            if upcoming.empty:
+                st.caption("No hay turnos pendientes.")
+                if st.button("Solicitar servicio", key="mh_next_booking", use_container_width=True):
+                    start_service()
+            else:
+                booking = upcoming.iloc[0].to_dict()
+                st.markdown(booking["service_type"])
+                st.caption(appointment_label(booking))
+                if st.button("Continuar con el pago", key="mh_next_pay", use_container_width=True):
+                    open_booking_in_services(booking)
+    with cards[2]:
+        with st.container(border=True):
+            st.markdown("**Recomendación Predict**")
+            if not recs:
+                st.caption("Sin recomendaciones pendientes.")
+            else:
+                rec = recs[0]
+                st.markdown(rec["title"])
+                st.caption(f"{rec['priority']} · {rec['suggested_date']}")
+                if st.button("Solicitar servicio", key="mh_next_predict", use_container_width=True):
+                    start_service(recommendation_service_type(rec), rec["reason"])
+
+
+def _render_services_section(groups: dict) -> None:
+    _scroll_anchor("mis-servicios")
+    st.markdown("### Mis servicios")
+    in_progress_tab, upcoming_tab, history_tab = st.tabs(["En curso", "Próximos", "Historial"])
+    with in_progress_tab:
+        _render_booking_list(groups["en_curso"], "active")
+    with upcoming_tab:
+        _render_booking_list(groups["proximos"], "upcoming")
+    with history_tab:
+        _render_service_history(groups["finalizados"])
+
+
+def _render_booking_list(bookings, key_prefix: str) -> None:
+    if bookings.empty:
+        st.caption("No hay servicios en esta categoría.")
+        return
+    for _, row in bookings.iterrows():
+        booking = row.to_dict()
+        with st.container(border=True):
+            st.markdown(f"**{booking['service_type']}** · {booking['id']}")
+            st.caption(
+                f"{booking['professional_name']} · {appointment_label(booking)} · "
+                f"{booking.get('payment_status', '—')}"
+            )
+            if key_prefix == "active":
+                st.markdown(
+                    tracking_road_html(
+                        booking.get("service_status", ""),
+                        SERVICE_STATUS_FLOW,
+                        booking.get("service_type", ""),
+                        get_professional(booking.get("professional_id", "")),
+                    ),
+                    unsafe_allow_html=True,
+                )
+            a1, a2 = st.columns(2)
+            with a1:
+                action = "Ver seguimiento" if key_prefix == "active" else "Continuar con el pago"
+                if st.button(action, key=f"mh_{key_prefix}_open_{booking['id']}", use_container_width=True):
+                    open_booking_in_services(booking)
+            with a2:
+                if booking.get("payment_status") == PAYMENT_CONFIRMED and st.button(
+                    "Abrir chat", key=f"mh_{key_prefix}_chat_{booking['id']}", use_container_width=True
+                ):
+                    st.session_state.mh_chat_location = "next"
+                    open_booking_chat(booking["id"])
+
+
+def _render_service_history(finalized_bookings) -> None:
+    history = load_history()
+    if history.empty and finalized_bookings.empty:
+        st.caption("Todavía no hay servicios finalizados.")
+        return
+    booking_map = {
+        row["id"]: row.to_dict()
+        for _, row in finalized_bookings.iterrows()
+    }
+    rows = history.sort_values("date", ascending=False).to_dict("records") if not history.empty else []
+    known_ids = {row.get("booking_id") for row in rows}
+    for booking_id, booking in booking_map.items():
+        if booking_id not in known_ids:
+            rows.append({
+                "booking_id": booking_id,
+                "date": booking.get("completed_at") or booking.get("appointment_date", ""),
+                "service_category": booking.get("service_type", ""),
+                "professional_name": booking.get("professional_name", ""),
+                "final_price": booking.get("approved_price") or booking.get("initial_price", 0),
+                "rating": "—",
+                "guarantee_status": booking.get("guarantee_status", "Sin reclamo"),
+                "work_completed": booking.get("work_completed", ""),
+            })
+    for row in rows:
+        booking_id = row.get("booking_id", "")
+        booking = get_booking(booking_id) or booking_map.get(booking_id)
+        with st.container(border=True):
+            st.markdown(f"**{row.get('service_category', 'Servicio')}** · {row.get('date', '—')}")
+            st.caption(
+                f"{row.get('professional_name', '—')} · {format_ars(row.get('final_price', 0))} · "
+                f"Calificación: {row.get('rating', '—')}/5"
+            )
+            st.caption(f"Garantía SALVA: {row.get('guarantee_status', 'Sin reclamo')}")
+            if row.get("work_completed"):
+                st.caption(row["work_completed"])
+            if booking:
+                with st.expander("Ver comprobante"):
+                    pro = get_professional(booking.get("professional_id", "")) or {}
+                    st.markdown(
+                        booking_receipt_html(
+                            booking,
+                            pro,
+                            float(booking.get("approved_price") or booking.get("initial_price") or 0),
+                            appointment_label(booking),
+                            booking.get("location") or booking.get("address", ""),
+                        ),
+                        unsafe_allow_html=True,
+                    )
+            with st.expander("Iniciar reclamo con Garantía SALVA"):
+                render_complaint_form(booking_id, f"mh_{booking_id}")
+                render_complaints_list(booking_id)
+
+
+def _render_finances_section(summary: dict, upcoming, goal) -> None:
     _scroll_anchor("finanzas")
-    st.markdown("### Resumen financiero")
-    fc1, fc2 = st.columns(2)
-    with fc1:
+    st.markdown("### Finanzas del hogar")
+    pending = payment_summary()
+    cards = st.columns(3)
+    with cards[0]:
         with st.container(border=True):
             st.markdown("**SALVA Cuenta**")
             st.markdown(f"### {format_ars(summary['cuenta'])}")
             st.caption("Saldo disponible para pagar servicios.")
-            if not upcoming.empty:
-                u = upcoming.iloc[0]
-                st.caption(f"Próximo pago: {u.get('service_type', '—')}")
-            st.caption(f"Alias de muestra: `{SIM_ALIAS}`")
-            b1, b2 = st.columns(2)
-            with b1:
-                if st.button("Fondear cuenta", key="mh_fund_btn", use_container_width=True):
-                    st.session_state.mh_show_funding = True
-            with b2:
-                if st.button("Ver movimientos", key="mh_mov_cuenta", use_container_width=True):
-                    st.session_state.mh_mov_filter = "SALVA Cuenta"
-                    st.session_state.mh_scroll_mov = True
-    with fc2:
+    with cards[1]:
         with st.container(border=True):
             st.markdown("**SALVA Ahorro**")
             st.markdown(f"### {format_ars(summary['ahorro'])}")
-            st.caption(f"No asignado: {format_ars(summary['unassigned'])}")
-            st.caption(f"Asignado a objetivos: {format_ars(summary['assigned'])}")
-            if goal:
-                st.caption(f"Objetivo principal: {goal['name']}")
-            b1, b2 = st.columns(2)
-            with b1:
-                if st.button("Mover dinero", key="mh_transfer_btn", use_container_width=True):
-                    st.session_state.mh_show_transfer = True
-            with b2:
-                if st.button("Ver objetivos", key="mh_goals_btn", use_container_width=True):
-                    st.session_state.mh_scroll_goals = True
+            st.caption(
+                f"Libre: {format_ars(summary['unassigned'])} · "
+                f"Objetivos: {format_ars(summary['assigned'])}"
+            )
+    with cards[2]:
+        with st.container(border=True):
+            st.markdown("**Próximo pago**")
+            if upcoming.empty:
+                st.markdown("### —")
+                st.caption("Sin pagos pendientes.")
+            else:
+                booking = upcoming.iloc[0]
+                st.markdown(f"### {format_ars(booking.get('approved_price') or booking.get('initial_price') or 0)}")
+                st.caption(booking.get("service_type", "Servicio"))
+            st.caption(f"{pending['pending_count']} pago(s) pendiente(s)")
+
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        if st.button("Fondear SALVA Cuenta", key="mh_fund_btn", use_container_width=True):
+            st.session_state.mh_show_funding = not st.session_state.get("mh_show_funding", False)
+    with a2:
+        if st.button("Mover dinero", key="mh_transfer_btn", use_container_width=True):
+            st.session_state.mh_show_transfer = not st.session_state.get("mh_show_transfer", False)
+    with a3:
+        if st.button("Ver movimientos", key="mh_movements_btn", use_container_width=True):
+            st.session_state.mh_show_movements = not st.session_state.get("mh_show_movements", False)
+    a4, a5 = st.columns(2)
+    with a4:
+        if st.button("Ver objetivos", key="mh_goals_btn", use_container_width=True):
+            st.session_state.mh_show_goals = not st.session_state.get("mh_show_goals", False)
+    with a5:
+        if st.button("Simular financiación", key="mh_finance_btn", use_container_width=True):
+            st.session_state.mh_show_financing = not st.session_state.get("mh_show_financing", False)
 
     if st.session_state.get("mh_show_funding"):
-        _render_funding(summary)
-
+        with st.expander("Fondear SALVA Cuenta", expanded=True):
+            _render_funding(summary)
     if st.session_state.get("mh_show_transfer"):
-        _render_transfers(summary)
+        with st.expander("Mover dinero entre Cuenta y Ahorro", expanded=True):
+            _render_transfers(summary)
+    if st.session_state.get("mh_show_movements"):
+        with st.expander("Movimientos monetarios", expanded=True):
+            _render_movements()
+    if st.session_state.get("mh_show_financing"):
+        with st.expander("Simulación de financiación", expanded=True):
+            render_financing_simulator("mh")
 
-    # C — Movimientos internos (siempre visible resumido)
-    _scroll_anchor("transferencias")
-    st.markdown("### Mover dinero dentro de SALVA")
-    st.caption("Solo entre SALVA Cuenta y SALVA Ahorro.")
-    if not st.session_state.get("mh_show_transfer"):
-        if st.button("Abrir transferencias", key="mh_open_xfer"):
-            st.session_state.mh_show_transfer = True
-            st.rerun()
 
-    # D — Objetivos y proyectos
-    _scroll_anchor("objetivos")
-    st.markdown("### Objetivos y proyectos sugeridos")
+def _render_projects_and_recommendations(goal, recs, profile, summary) -> None:
+    _scroll_anchor("proyectos")
+    st.markdown("### Proyectos y recomendaciones")
     _render_projects_row(goal, recs, summary)
-    _render_goals(summary)
-
-    # E — SALVA Predict
-    _scroll_anchor("predict")
-    st.markdown("### SALVA Predict")
+    if st.session_state.get("mh_show_goals"):
+        with st.expander("SALVA Objetivos", expanded=True):
+            _render_goals(summary)
+    else:
+        st.caption("Usá “Ver objetivos” en Finanzas del hogar para administrar fondos asignados.")
+    st.markdown("#### SALVA Predict")
     _render_predict(recs, profile, summary)
-
-    # F — Historial
-    _scroll_anchor("historial")
-    st.markdown("### Historial de servicios")
-    _render_history_preview(hist)
-
-    # G — Movimientos monetarios
-    _scroll_anchor("movimientos")
-    st.markdown("### Movimientos monetarios")
-    _render_movements()
+    tasks = load_tasks()
+    with st.expander("Plan de mantenimiento"):
+        if tasks.empty:
+            st.caption("Todavía no agregaste tareas al plan.")
+        else:
+            for _, task in tasks.head(8).iterrows():
+                st.markdown(f"**{task['title']}** · {task['priority_bucket']}")
+                st.caption(f"{task['recommended_date']} · {task['preparation_status']}")
 
 
 def _render_funding(summary: dict) -> None:
@@ -325,20 +523,6 @@ def _render_predict(recs, profile, summary) -> None:
     st.markdown(salvita_html("neutral", predict_intro()), unsafe_allow_html=True)
     for phrase in narrative_phrases(profile, load_history()):
         st.caption(f"· {phrase}")
-    with st.expander("Perfil del hogar"):
-        with st.form("home_profile_unified"):
-            c1, c2 = st.columns(2)
-            with c1:
-                ht = st.selectbox("Tipo", ["Departamento", "Casa", "PH"])
-                age = st.number_input("Antigüedad (años)", 0, 100, int(profile.get("age_years") or 10) if profile else 10)
-            with c2:
-                hood = st.text_input("Ubicación", value=profile.get("neighborhood", "Palermo") if profile else "Palermo")
-                gas = st.checkbox("Tiene gas", value=str(profile.get("has_gas", "true")).lower() == "true" if profile else True)
-                ac = st.checkbox("Tiene aire acondicionado", value=str(profile.get("has_ac", "false")).lower() == "true" if profile else False)
-            if st.form_submit_button("Guardar perfil", use_container_width=True):
-                save_profile(ht, age, 3, gas, ac, 2020, hood)
-                st.success("Perfil guardado.")
-                st.rerun()
     for rec in recs[:4]:
         char = character_image_path(SERVICE_ICON_KEY.get(rec.get("title", ""), "todos"))
         with st.container(border=True):
@@ -351,54 +535,28 @@ def _render_predict(recs, profile, summary) -> None:
                 st.caption(rec["reason"])
                 st.caption(f"**Cuándo:** {rec['suggested_date']} · **Costo estimado:** {format_ars(rec['cost_low'])} – {format_ars(rec['cost_high'])}")
                 st.caption(f"Fondos disponibles: {format_ars(summary['unassigned'])} en Ahorro · {format_ars(summary['cuenta'])} en Cuenta")
-            a1, a2, a3, a4 = st.columns(4)
+            a1, a2, a3 = st.columns(3)
             with a1:
-                if st.button("Buscar profesional", key=f"pred_pro_{rec['title'][:12]}", use_container_width=True):
-                    start_service("Mantenimiento general")
+                if st.button("Solicitar este servicio", key=f"pred_pro_{rec['title'][:12]}", use_container_width=True):
+                    start_service(recommendation_service_type(rec), rec["reason"])
             with a2:
                 if st.button("Crear objetivo", key=f"pred_goal_{rec['title'][:12]}", use_container_width=True):
-                    st.session_state.mh_scroll_goals = True
+                    st.session_state.mh_show_goals = True
                     st.rerun()
             with a3:
                 if st.button("Agregar al plan", key=f"pred_plan_{rec['title'][:12]}", use_container_width=True):
-                    add_manual_task(rec["title"], rec["reason"], "Este mes", (rec["cost_low"] + rec["cost_high"]) / 2, rec["suggested_date"])
-                    st.success("Agregado al plan.")
-            with a4:
-                if st.button("No me interesa por ahora", key=f"pred_skip_{rec['title'][:12]}", use_container_width=True):
-                    st.caption("Entendido. Podés revisarlo más adelante.")
-
-
-def _render_history_preview(hist) -> None:
-    df = load_history()
-    if df.empty:
-        if empty_state("libreta", "Tu historial está listo", "Acá guardamos la historia de tu hogar.", "Buscar profesionales", "mh_empty_hist", salvita_state="neutral"):
-            start_service()
-        return
-    for _, row in df.head(3).iterrows():
-        with st.container(border=True):
-            c1, c2 = st.columns([1, 5])
-            with c1:
-                path = character_image_path(SERVICE_ICON_KEY.get(row["service_category"], "todos"))
-                if path:
-                    st.image(str(path), width=36)
-            with c2:
-                st.markdown(f"**{row['service_category']}** · {row['date']}")
-                pro = None
-                for pid in [f"PRO{i:03d}" for i in range(1, 17)]:
-                    p = get_professional(pid)
-                    if p and p.get("name") == row["professional_name"]:
-                        pro = p
-                        break
-                if pro:
-                    cc1, cc2 = st.columns([1, 5])
-                    with cc1:
-                        render_pro_avatar(pro, 36)
-                    with cc2:
-                        st.caption(row["professional_name"])
-                st.caption(row.get("work_completed", row.get("reported_problem", "")))
-                st.caption(f"{format_ars(row['final_price'])} · {row['rating']}/5 · {row['guarantee_status']}")
-    if hist["total"] > 3:
-        st.caption(f"Mostrando 3 de {hist['total']} servicios completados.")
+                    tasks = load_tasks()
+                    if not tasks.empty and rec["title"] in set(tasks["title"]):
+                        st.info("Esta recomendación ya está en tu plan.")
+                    else:
+                        add_manual_task(
+                            rec["title"],
+                            rec["reason"],
+                            "Este mes",
+                            (rec["cost_low"] + rec["cost_high"]) / 2,
+                            rec["suggested_date"],
+                        )
+                        st.success("Agregado al plan.")
 
 
 def _render_movements() -> None:

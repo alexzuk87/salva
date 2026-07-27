@@ -40,6 +40,18 @@ SERVICE_STATUS_FLOW = [
     "Servicio finalizado",
 ]
 
+FINAL_BOOKING_STATUSES = {
+    BOOKING_FINALIZADA,
+    "Completada",
+    "Finalizada",
+}
+FINAL_SERVICE_STATUSES = {
+    "Servicio finalizado",
+    "Completado",
+    "Finalizado",
+}
+CANCELLED_STATUSES = {BOOKING_CANCELADA, "Cancelado", "Cancelada"}
+
 
 def _migrate_raw(path) -> pd.DataFrame:
     if not path.exists():
@@ -170,6 +182,41 @@ def list_bookings(customer_name: str | None = None) -> pd.DataFrame:
     if customer_name:
         df = df[df["customer_name"].str.lower() == customer_name.lower()]
     return df.sort_values("created_at", ascending=False).reset_index(drop=True) if not df.empty else df
+
+
+def split_bookings_for_home(df: pd.DataFrame | None = None) -> dict[str, pd.DataFrame]:
+    """Clasifica reservas para Mi hogar contemplando estados actuales y legacy."""
+    source = load_bookings() if df is None else df.copy()
+    empty = source.iloc[0:0].copy()
+    if source.empty:
+        return {"en_curso": empty, "proximos": empty, "finalizados": empty}
+
+    booking_status = source["booking_status"].fillna("")
+    service_status = source["service_status"].fillna("")
+    payment_status = source["payment_status"].fillna("")
+    cancelled = booking_status.isin(CANCELLED_STATUSES)
+    finalized = booking_status.isin(FINAL_BOOKING_STATUSES) | service_status.isin(FINAL_SERVICE_STATUSES)
+    paid = payment_status.eq(PAYMENT_CONFIRMED)
+    in_progress = ~cancelled & ~finalized & paid
+    upcoming = ~cancelled & ~finalized & ~in_progress
+
+    return {
+        "en_curso": source[in_progress].reset_index(drop=True),
+        "proximos": source[upcoming].reset_index(drop=True),
+        "finalizados": source[finalized].reset_index(drop=True),
+    }
+
+
+def flow_step_for_booking(booking: dict) -> int:
+    """Paso de Servicios apropiado al reingresar desde Mi hogar."""
+    if (
+        booking.get("booking_status") in FINAL_BOOKING_STATUSES
+        or booking.get("service_status") in FINAL_SERVICE_STATUSES
+    ):
+        return 6
+    if booking.get("payment_status") == PAYMENT_CONFIRMED:
+        return 5
+    return 4
 
 
 def advance_service_status(booking_id: str) -> dict | None:

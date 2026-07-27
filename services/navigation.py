@@ -7,12 +7,15 @@ from services.branding import logo_header_html
 MAIN_NAV = [
     "Inicio",
     "Servicios",
-    "Reservas",
     "Mi hogar",
-    "Pagos",
-    "Garantía",
-    "Perfil",
 ]
+ROUTABLE_SECTIONS = MAIN_NAV + ["Reservas", "Pagos", "Garantía", "Perfil"]
+SECTION_PARENT = {
+    "Reservas": "Servicios",
+    "Garantía": "Servicios",
+    "Pagos": "Mi hogar",
+    "Perfil": "Mi hogar",
+}
 
 SIM_NOTE = "Información simulada para este prototipo académico."
 
@@ -48,7 +51,7 @@ def init_state() -> None:
 
 
 def go(section: str, **kwargs) -> None:
-    if section not in MAIN_NAV:
+    if section not in ROUTABLE_SECTIONS:
         section = "Inicio"
     if st.session_state.get("section") != section:
         st.session_state.section = section
@@ -74,15 +77,21 @@ def clear_active_flow() -> None:
     st.session_state.show_chat = False
 
 
-def start_service(preset: str = "") -> None:
+def start_service(preset: str = "", need: str = "") -> None:
     st.session_state.section = "Servicios"
     st.session_state.flow_step = 1
     st.session_state.form_step = 1
+    st.session_state.request = {"description": need} if need else {}
     st.session_state.preset_service = preset
+    st.session_state.selected_pro_id = None
+    st.session_state.view_pro_id = None
     st.session_state.created_booking_id = None
     st.session_state.pending_payment_booking_id = None
     st.session_state.active_booking_id = None
     st.session_state.diagnosis = None
+    st.session_state.show_booking_receipt = False
+    st.session_state.show_payment_receipt = False
+    st.session_state.show_chat = False
     st.rerun()
 
 
@@ -115,6 +124,7 @@ def _nav_row(key_prefix: str, current: str, position: str) -> None:
 def render_main_navigation(position: str, key_prefix: str) -> None:
     """Navegación principal reutilizable. position: 'top' | 'bottom'"""
     current = st.session_state.get("section", "Inicio")
+    current = SECTION_PARENT.get(current, current)
     if current not in MAIN_NAV:
         current = "Inicio"
 
