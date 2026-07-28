@@ -4,37 +4,20 @@ import base64
 import html
 from pathlib import Path
 
+from services.service_categories import CATEGORY_CATALOG, home_categories_tuples
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CHAR_DIR = PROJECT_ROOT / "assets" / "service-characters"
 
-HOME_CATEGORIES = [
-    ("Plomería", "plomeria", "Plomería", "Pérdidas, cañerías y grifería"),
-    ("Electricidad", "electricidad", "Electricidad", "Instalaciones y urgencias"),
-    ("Gas", "gas", "Climatización", "Revisión y reparación"),
-    ("Cerrajería", "cerrajeria", "Mantenimiento general", "Accesos y cerraduras"),
-    ("Limpieza", "limpieza", "Limpieza", "Limpieza profunda y mantenimiento"),
-    ("Pintura", "pintura", "Pintura", "Interiores y exteriores"),
-    ("Electrodomésticos", "electrodomesticos", "Reparación de electrodomésticos", "Reparación y mantenimiento"),
-    ("Jardinería", "jardineria", "Jardinería", "Plantas, césped y exteriores"),
-    ("Albañilería", "albanileria", "Mantenimiento general", "Reparaciones y obra menor"),
-    ("Aire acondicionado", "aire", "Climatización", "Instalación y service"),
-    ("Carpintería", "carpinteria", "Mantenimiento general", "Muebles, puertas y medidas"),
-    ("Ver todos", "todos", "", "Explorá todas las categorías"),
-]
+HOME_CATEGORIES = home_categories_tuples()
 
 SERVICE_ICON_KEY = {
-    "Plomería": "plomeria",
-    "Electricidad": "electricidad",
+    **{meta["label"]: meta["icon"] for meta in CATEGORY_CATALOG.values()},
+    **{meta["internal"]: meta["icon"] for meta in CATEGORY_CATALOG.values()},
     "Climatización": "aire",
-    "Gas": "gas",
-    "Limpieza": "limpieza",
-    "Pintura": "pintura",
-    "Jardinería": "jardineria",
+    "Gasista": "gas",
     "Reparación de electrodomésticos": "electrodomesticos",
     "Mantenimiento general": "albanileria",
-    "Albañilería": "albanileria",
-    "Aire acondicionado": "aire",
-    "Carpintería": "carpinteria",
 }
 
 CATEGORY_ACCENTS = {

@@ -20,6 +20,7 @@ from services.accounts import (
     receipt_html,
     transfer,
 )
+from services.auth import render_user_session
 from services.bookings import (
     PAYMENT_CONFIRMED,
     SERVICE_STATUS_FLOW,
@@ -106,7 +107,7 @@ def _render_profile_and_home(profile: dict, status: str, reason: str) -> None:
     _scroll_anchor("perfil-vivienda")
     st.markdown("### Perfil y vivienda")
     with st.container(border=True):
-        c1, c2 = st.columns([4, 1])
+        c1, c2 = st.columns([4, 1.4])
         with c1:
             name = f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip() or "Completá tu nombre"
             location = ", ".join(
@@ -121,7 +122,7 @@ def _render_profile_and_home(profile: dict, status: str, reason: str) -> None:
             st.markdown(f"**Estado general:** {status}")
             st.caption(reason)
         with c2:
-            st.markdown(salvita_html("neutral", ""), unsafe_allow_html=True)
+            render_user_session()
         with st.expander("Editar perfil"):
             render_profile_editor(profile, "mh_profile")
 
@@ -180,7 +181,14 @@ def _render_next_section(active, upcoming, recs) -> None:
                 st.markdown(rec["title"])
                 st.caption(f"{rec['priority']} · {rec['suggested_date']}")
                 if st.button("Solicitar servicio", key="mh_next_predict", use_container_width=True):
-                    start_service(recommendation_service_type(rec), rec["reason"])
+                    from services.service_categories import category_key, category_label
+                    internal = recommendation_service_type(rec)
+                    start_service(
+                        internal,
+                        rec["reason"],
+                        category_label=category_label(internal),
+                        category_key=category_key(internal),
+                    )
 
 
 def _render_services_section(groups: dict) -> None:
@@ -538,7 +546,14 @@ def _render_predict(recs, profile, summary) -> None:
             a1, a2, a3 = st.columns(3)
             with a1:
                 if st.button("Solicitar este servicio", key=f"pred_pro_{rec['title'][:12]}", use_container_width=True):
-                    start_service(recommendation_service_type(rec), rec["reason"])
+                    from services.service_categories import category_key, category_label, category_internal
+                    internal = recommendation_service_type(rec)
+                    start_service(
+                        internal,
+                        rec["reason"],
+                        category_label=category_label(internal),
+                        category_key=category_key(internal),
+                    )
             with a2:
                 if st.button("Crear objetivo", key=f"pred_goal_{rec['title'][:12]}", use_container_width=True):
                     st.session_state.mh_show_goals = True

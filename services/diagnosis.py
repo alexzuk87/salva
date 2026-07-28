@@ -6,6 +6,7 @@ SERVICE_KEYWORDS = {
     "Plomería": ["pérdida", "canilla", "agua", "caño", "inodoro", "desagüe", "plomer"],
     "Electricidad": ["luz", "toma", "cable", "disyuntor", "electric", "enchufe"],
     "Climatización": ["aire", "frío", "calor", "split", "hvac", "clima"],
+    "Gasista": ["gas", "calefón", "estufa", "cocina", "garrafa"],
     "Limpieza": ["limpieza", "sucio", "profunda", "higien"],
     "Pintura": ["pintura", "pared", "mancha", "retoque"],
     "Jardinería": ["jardín", "césped", "planta", "poda"],

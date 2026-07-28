@@ -5,6 +5,7 @@ from datetime import date
 
 import streamlit as st
 
+from services.auth import authenticated_user
 from services.bookings import (
     PAYMENT_CONFIRMED,
     SERVICE_STATUS_FLOW,
@@ -21,6 +22,8 @@ from services.diagnosis import build_diagnosis
 from services.formatting import format_ars
 from services.locations import PROVINCES, locality_options, location_summary
 from services.navigation import clear_active_flow, go
+from services.service_categories import category_internal, category_label as visible_category_label, resolve_selection
+from services.service_guides import guide_for_category, render_category_guide
 from services.ui_components import (
     booking_confirmed_receipt_html,
     booking_pending_receipt_html,
@@ -72,22 +75,32 @@ def render() -> None:
         )()
 
 
-def _profile_defaults() -> tuple[str, str]:
-    fn = st.session_state.get("profile_first_name", "")
-    ln = st.session_state.get("profile_last_name", "")
-    return fn, ln
+def _customer_name(req: dict | None = None) -> str:
+    """Nombre visible del cliente desde Google; fallback a datos previos del request."""
+    user = authenticated_user()
+    if user.get("name"):
+        return user["name"]
+    req = req or st.session_state.get("request") or {}
+    existing = str(req.get("customer_name", "")).strip()
+    if existing:
+        return existing
+    fn = str(req.get("first_name", "")).strip()
+    ln = str(req.get("last_name", "")).strip()
+    return f"{fn} {ln}".strip() or "Cliente SALVA"
 
 
-def _customer_name(req: dict) -> str:
-    fn = req.get("first_name", "").strip()
-    ln = req.get("last_name", "").strip()
-    if fn or ln:
-        return f"{fn} {ln}".strip()
-    return req.get("customer_name", "").strip()
+def _apply_authenticated_identity(req: dict) -> None:
+    """Completa identidad del cliente sin pedir Nombre/Apellido en el formulario."""
+    user = authenticated_user()
+    req["customer_name"] = _customer_name(req)
+    req["customer_email"] = user.get("email", "")
+    req["customer_sub"] = user.get("sub", "")
+    if user.get("name"):
+        st.session_state.profile_first_name = user["name"]
 
 
 def _go_to_professionals(req: dict) -> None:
-    req["customer_name"] = _customer_name(req)
+    _apply_authenticated_identity(req)
     st.session_state.created_booking_id = None
     st.session_state.pending_payment_booking_id = None
     st.markdown(salvita_html("searching"), unsafe_allow_html=True)
@@ -103,67 +116,73 @@ def _form_wizard() -> None:
     preset = st.session_state.get("preset_service", "")
     fs = st.session_state.form_step
     req = st.session_state.request
-    pfn, pln = _profile_defaults()
+    _apply_authenticated_identity(req)
 
     if fs == 1:
         with st.container(border=True):
-            st.markdown('<p class="form-step-num">Paso 1 · Tus datos y servicio</p>', unsafe_allow_html=True)
-            c1, c2 = st.columns(2)
-            with c1:
-                first_name = st.text_input("Nombre", value=req.get("first_name") or pfn, key="fs_first")
-            with c2:
-                last_name = st.text_input("Apellido", value=req.get("last_name") or pln, key="fs_last")
-            st.markdown("#### ¿Qué necesitás resolver?")
+            st.markdown('<p class="form-step-num">¿Qué servicio necesitás?</p>', unsafe_allow_html=True)
             st.caption("Elegí un servicio y SALVA te ayuda con el resto.")
             if preset:
-                st.info(f"Categoría sugerida: **{preset}**")
+                st.info(f"Categoría sugerida: **{visible_category_label(preset) or preset}**")
             picked = form_category_picker("fs_cat")
             if picked:
-                req["first_name"] = first_name.strip()
-                req["last_name"] = last_name.strip()
-                if not first_name.strip() or not last_name.strip():
-                    st.error("Ingresá nombre y apellido.")
-                else:
-                    req["service_type"] = picked if picked != "__all__" else preset or req.get("service_type", SERVICE_TYPES[0])
-                    st.session_state.preset_service = req["service_type"]
-                    st.session_state.profile_first_name = req["first_name"]
-                    st.session_state.profile_last_name = req["last_name"]
-                    st.session_state.form_step = 2
-                    st.rerun()
+                label, mapped = picked
+                resolved = resolve_selection(label, mapped)
+                req["category_key"] = resolved["key"]
+                req["category_label"] = resolved["label"]
+                req["service_type"] = resolved["internal"] or preset or req.get("service_type", SERVICE_TYPES[0])
+                st.session_state.preset_service = req["service_type"]
+                st.session_state.form_step = 2
+                st.rerun()
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("← Atrás", key="fs1_back"):
                     go("Inicio")
             with c2:
                 if st.button("Continuar →", type="primary", use_container_width=True, key="fs1_next"):
-                    if not first_name.strip() or not last_name.strip():
-                        st.error("Ingresá nombre y apellido.")
-                    elif not (preset or req.get("service_type")):
+                    if not (preset or req.get("service_type") or req.get("category_label")):
                         st.error("Elegí una categoría de servicio.")
                     else:
-                        req["first_name"] = first_name.strip()
-                        req["last_name"] = last_name.strip()
-                        req["service_type"] = preset or req.get("service_type", SERVICE_TYPES[0])
-                        st.session_state.profile_first_name = req["first_name"]
-                        st.session_state.profile_last_name = req["last_name"]
+                        resolved = resolve_selection(
+                            req.get("category_label", ""),
+                            preset or req.get("service_type", SERVICE_TYPES[0]),
+                        )
+                        req["category_key"] = resolved["key"]
+                        req["category_label"] = resolved["label"] or visible_category_label(preset) or preset
+                        req["service_type"] = resolved["internal"] or category_internal(preset) or preset
+                        st.session_state.preset_service = req["service_type"]
                         st.session_state.form_step = 2
                         st.rerun()
         return
 
-    svc = req.get("service_type") or preset or SERVICE_TYPES[0]
+    category_ref = req.get("category_key") or req.get("category_label") or req.get("service_type") or preset
+    category_label = req.get("category_label") or visible_category_label(category_ref) or category_ref
+    svc = req.get("service_type") or category_internal(category_ref) or preset or SERVICE_TYPES[0]
 
     if fs == 2:
+        guide = guide_for_category(req.get("category_key") or category_label)
         with st.container(border=True):
-            st.markdown('<p class="form-step-num">Paso 2 · ¿Qué necesitás?</p>', unsafe_allow_html=True)
-            st.markdown(f"**Categoría:** {svc}", unsafe_allow_html=True)
+            st.markdown('<p class="form-step-num">Detalle del servicio</p>', unsafe_allow_html=True)
+            st.markdown(f"**Categoría:** {category_label}", unsafe_allow_html=True)
+            render_category_guide(req.get("category_key") or category_label)
             description = st.text_area(
                 "Contanos qué necesitás resolver",
                 value=req.get("description", ""),
                 height=120,
-                placeholder="Por ejemplo: necesito pintar una cocina de 3 × 4 metros.",
+                placeholder=str(guide["placeholder"]),
             )
-            st.caption("Cuanto más detalle nos des, mejor podremos encontrar al profesional indicado.")
-            st.file_uploader("Fotos del problema (opcional)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+            st.markdown("**Agregá fotos del problema (opcional)**")
+            st.info(
+                "Las fotos ayudan a evaluar mejor el trabajo, recibir una cotización más precisa "
+                "y encontrar al profesional adecuado."
+            )
+            st.file_uploader(
+                "Fotos del problema (opcional)",
+                type=["jpg", "jpeg", "png"],
+                accept_multiple_files=True,
+                label_visibility="collapsed",
+                key="fs2_photos",
+            )
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("← Atrás", key="fs2_back"):
@@ -176,6 +195,7 @@ def _form_wizard() -> None:
                     else:
                         req["description"] = description.strip()
                         req["service_type"] = svc
+                        req["category_label"] = category_label
                         st.session_state.form_step = 3
                         st.rerun()
         return
@@ -368,14 +388,27 @@ def _reserva() -> None:
         st.markdown(f"**Ubicación:** {loc}")
         st.markdown(f"**Turno:** {appt} · Llegada ~{eta}")
         st.info("El chat se habilitará cuando confirmes el pago.")
-        terms = st.checkbox("Revisé y acepto las condiciones del servicio y la Garantía SALVA.")
+        st.caption(
+            "Al confirmar la reserva, aceptás las "
+            "[condiciones del servicio](#condiciones-servicio) y la "
+            "[Garantía SALVA](#garantia-salva)."
+        )
+        with st.expander("Condiciones del servicio y Garantía SALVA", expanded=False):
+            st.markdown(
+                "**Condiciones del servicio:** el precio orientativo puede ajustarse "
+                "tras la evaluación en domicilio. El turno queda reservado al confirmar."
+            )
+            st.markdown(
+                "**Garantía SALVA:** cobertura post-servicio sujeta a revisión. "
+                "Podés iniciar un reclamo formal desde Mi hogar o Garantía."
+            )
         c1, c2 = st.columns(2)
         with c1:
             if st.button("← Cambiar profesional"):
                 st.session_state.flow_step = 2
                 st.rerun()
         with c2:
-            if st.button("Confirmar reserva", type="primary", use_container_width=True, disabled=not terms):
+            if st.button("Confirmar reserva", type="primary", use_container_width=True):
                 b = create_booking(
                     customer_name=_customer_name(req), province=req.get("province", ""),
                     locality=req.get("locality", ""), neighborhood=req.get("neighborhood", ""),
@@ -428,12 +461,16 @@ def _pago() -> None:
         if method == "Tarjeta de crédito":
             st.markdown('<div class="sim-banner">Pago simulado para fines académicos. SALVA no almacena datos sensibles de la tarjeta.</div>', unsafe_allow_html=True)
             with st.form(f"pay_card_{bid}"):
-                cn_raw = st.text_input("Número de tarjeta", placeholder="1234 5678 9012 3456", max_chars=19)
+                cn_raw = st.text_input(
+                    "Número de tarjeta",
+                    placeholder="1234 5678 9012 3456",
+                    max_chars=19,
+                    help="Ingresá los 16 números de la tarjeta",
+                )
                 cn = sanitize_card_input(cn_raw)
-                if cn != cn_raw:
-                    st.session_state[f"card_fmt_{bid}"] = cn
                 brand = detect_card_brand(cn)
                 st.markdown(card_brands_html(brand), unsafe_allow_html=True)
+                st.caption("Ingresá los 16 números de la tarjeta.")
                 holder = st.text_input("Titular de la tarjeta")
                 c1, c2, c3 = st.columns([1, 1, 1])
                 with c1:
@@ -444,9 +481,11 @@ def _pago() -> None:
                     cvv = st.text_input("CVV", type="password", max_chars=3)
                 st.caption("Formato visual: MM / AA")
                 if st.form_submit_button("Confirmar pago simulado", type="primary", use_container_width=True):
-                    ok, msg, brand = validate_card(cn, holder, sanitize_month(month), sanitize_year(year), sanitize_cvv(cvv))
+                    ok, msg, brand = validate_card(
+                        cn_raw, holder, sanitize_month(month), sanitize_year(year), sanitize_cvv(cvv)
+                    )
                     if ok:
-                        digits = cn.replace(" ", "")
+                        digits = "".join(ch for ch in cn_raw if ch.isdigit())
                         confirm_payment(bid, method, digits[-4:], brand)
                         add_system_message(bid, "Pago confirmado")
                         st.session_state.show_payment_receipt = True
@@ -537,36 +576,57 @@ def _finalizacion() -> None:
         return
     pro = get_professional(booking["professional_id"]) or {}
     existing = get_rating(booking["id"])
+    work_done = (
+        booking.get("work_completed")
+        or booking.get("problem_description")
+        or booking.get("service_type")
+        or "Servicio completado"
+    )
     with st.container(border=True):
         st.markdown('<p class="section-title">Servicio finalizado</p>', unsafe_allow_html=True)
-        st.markdown(f"**{booking['service_type']}** con {booking['professional_name']} · {format_ars(booking.get('approved_price') or booking.get('initial_price'))}")
+        st.markdown(
+            f"**{booking['service_type']}** con {booking['professional_name']} · "
+            f"{format_ars(booking.get('approved_price') or booking.get('initial_price'))}"
+        )
         if existing and existing.get("rating"):
-            st.markdown(completed_service_receipt_html(booking, pro, int(existing["rating"]), existing.get("comment", ""), booking.get("work_completed", "")), unsafe_allow_html=True)
+            st.markdown(
+                completed_service_receipt_html(
+                    booking,
+                    pro,
+                    int(existing["rating"]),
+                    existing.get("comment", ""),
+                    work_done,
+                ),
+                unsafe_allow_html=True,
+            )
             _completion_actions()
             return
-        render_star_rating(booking["id"])
+        st.markdown("#### Calificá tu experiencia")
+        rating = render_star_rating(booking["id"])
+        st.info("Sumás puntos SALVA si compartís una reseña y ayudás a otros usuarios a elegir mejor.")
         with st.form(f"fin_{booking['id']}"):
-            review = st.text_area("Reseña", height=80, placeholder="Contanos tu experiencia")
-            work = st.text_input("Trabajo realizado", placeholder="Describí brevemente lo que se hizo")
-            skip_review = st.checkbox("Omitir reseña escrita")
-            ok = st.checkbox("Confirmo que el trabajo fue finalizado")
-            submitted = st.form_submit_button("Enviar calificación", type="primary")
+            review = st.text_area(
+                "Reseña",
+                height=100,
+                placeholder="Contanos cómo fue tu experiencia (opcional)",
+            )
+            submitted = st.form_submit_button(
+                "Enviar calificación",
+                type="primary",
+                disabled=not bool(rating),
+            )
+        if st.button("Reportar un problema", key=f"fin_issue_pre_{booking['id']}", use_container_width=True):
+            go("Garantía")
         if submitted:
             rating = st.session_state.get(f"rating_val_{booking['id']}")
             if not rating:
                 st.error("Seleccioná una calificación con estrellas.")
-            elif not ok:
-                st.error("Confirmá que el trabajo fue finalizado.")
-            elif not work.strip():
-                st.error("Describí el trabajo realizado.")
-            elif not skip_review and not review.strip():
-                st.error("Escribí una reseña o marcá omitir reseña escrita.")
             elif st.session_state.get(f"review_saved_{booking['id']}"):
                 st.warning("Esta calificación ya fue enviada.")
             else:
                 comment = review.strip() if review.strip() else "Sin comentario adicional."
-                submit_completion(booking, int(rating), comment, work.strip(), "")
-                update_booking(booking["id"], work_completed=work.strip())
+                submit_completion(booking, int(rating), comment, work_done, "")
+                update_booking(booking["id"], work_completed=work_done)
                 st.session_state[f"review_saved_{booking['id']}"] = True
                 st.session_state[f"rating_done_{booking['id']}"] = True
                 st.balloons()

@@ -18,8 +18,15 @@ PROFESSIONAL_COLUMNS = [
 ]
 
 SERVICE_TYPES = [
-    "Plomería", "Electricidad", "Climatización", "Limpieza", "Pintura",
-    "Jardinería", "Reparación de electrodomésticos", "Mantenimiento general",
+    "Plomería",
+    "Electricidad",
+    "Climatización",
+    "Gasista",
+    "Limpieza",
+    "Pintura",
+    "Jardinería",
+    "Reparación de electrodomésticos",
+    "Mantenimiento general",
 ]
 
 URGENCY_MULTIPLIERS = {
@@ -159,8 +166,20 @@ def recommend_professionals(
     locality: str = "",
     verified_only: bool = True,
 ) -> pd.DataFrame:
+    from services.service_categories import category_match_terms, category_specialty_keywords
+
     df = load_professionals()
-    mask = df["service_types"].apply(lambda s: service_type in [x.strip() for x in str(s).split(",")])
+    match_terms = set(category_match_terms(service_type) or [service_type])
+    specialty_kw = category_specialty_keywords(service_type)
+
+    def _matches(row) -> bool:
+        types = [x.strip() for x in str(row.get("service_types", "")).split(",") if x.strip()]
+        if any(term in types for term in match_terms):
+            return True
+        specialty = str(row.get("specialty", "")).casefold()
+        return any(kw in specialty for kw in specialty_kw)
+
+    mask = df.apply(_matches, axis=1)
     candidates = df[mask].copy()
     if verified_only:
         candidates = candidates[candidates["verified"]]

@@ -202,6 +202,21 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover {
 .body-text { font-size: 1rem; color: var(--salva-muted); line-height: 1.6; }
 .support-text { font-size: 0.875rem; color: var(--salva-muted); }
 
+/* Acceso OIDC */
+.salva-auth-marker { display: none; }
+div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .salva-auth-marker) {
+  width: 100%;
+  max-width: 32rem;
+  margin: 8vh auto 0;
+}
+.salva-auth-title {
+  color: var(--salva-text);
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+
 /* Cards */
 .salva-card {
   background: var(--salva-surface); border-radius: var(--salva-radius); padding: 1.25rem;

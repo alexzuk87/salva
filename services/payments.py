@@ -1,4 +1,4 @@
-"""Pagos simulados (prototipo académico) — Visa y Mastercard únicamente."""
+"""Pagos simulados (prototipo académico)."""
 
 import re
 from datetime import datetime
@@ -9,6 +9,7 @@ PAYMENT_METHODS = ["Tarjeta de crédito", "Transferencia bancaria / alias", "SAL
 
 
 def detect_card_brand(number: str) -> str:
+    """Detecta marca solo para UI; no condiciona la validación del prototipo."""
     digits = re.sub(r"\D", "", number)
     if not digits:
         return ""
@@ -51,8 +52,6 @@ def sanitize_cvv(raw: str) -> str:
 def validate_card(number: str, holder: str, month: str, year: str, cvv: str) -> tuple[bool, str, str]:
     digits = re.sub(r"\D", "", number)
     brand = detect_card_brand(digits)
-    if brand not in ("Visa", "Mastercard"):
-        return False, "Ingresá una tarjeta Visa o Mastercard válida para esta simulación.", brand
     if len(digits) != 16:
         return False, "Ingresá los 16 números de la tarjeta.", brand
     if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñ'\s]{2,}", holder.strip()):
@@ -69,7 +68,7 @@ def validate_card(number: str, holder: str, month: str, year: str, cvv: str) -> 
         return False, "La fecha de vencimiento ya pasó.", brand
     if len(sanitize_cvv(cvv)) != 3:
         return False, "El código de seguridad debe tener 3 números.", brand
-    return True, "", brand
+    return True, "", brand or "Tarjeta"
 
 
 def confirm_payment(

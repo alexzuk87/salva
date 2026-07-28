@@ -77,11 +77,25 @@ def clear_active_flow() -> None:
     st.session_state.show_chat = False
 
 
-def start_service(preset: str = "", need: str = "") -> None:
+def start_service(
+    preset: str = "",
+    need: str = "",
+    category_label: str = "",
+    category_key: str = "",
+) -> None:
     st.session_state.section = "Servicios"
     st.session_state.flow_step = 1
     st.session_state.form_step = 1
-    st.session_state.request = {"description": need} if need else {}
+    request: dict = {}
+    if need:
+        request["description"] = need
+    if category_label:
+        request["category_label"] = category_label
+    if category_key:
+        request["category_key"] = category_key
+    if preset:
+        request["service_type"] = preset
+    st.session_state.request = request
     st.session_state.preset_service = preset
     st.session_state.selected_pro_id = None
     st.session_state.view_pro_id = None

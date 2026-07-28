@@ -60,10 +60,18 @@ def render() -> None:
             )
 
     selected = category_selector("home_cat")
-    if selected == "__all__":
-        start_service()
-    elif selected:
-        start_service(selected)
+    if selected:
+        label, mapped = selected
+        if mapped == "__all__":
+            start_service()
+        else:
+            from services.service_categories import resolve_selection
+            resolved = resolve_selection(label, mapped)
+            start_service(
+                resolved["internal"],
+                category_label=resolved["label"],
+                category_key=resolved["key"],
+            )
 
     benefit_cards()
 

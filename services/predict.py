@@ -115,12 +115,13 @@ def generate_recommendations() -> list[dict]:
 
 
 def recommendation_service_type(recommendation: dict) -> str:
-    """Mapea una recomendación Predict a una categoría válida de Servicios."""
+    """Mapea una recomendación Predict a una categoría interna válida."""
     text = f"{recommendation.get('title', '')} {recommendation.get('reason', '')}".lower()
     mappings = (
         (("agua", "pérdida", "cañería", "calefón"), "Plomería"),
         (("eléctric", "cortocircuit"), "Electricidad"),
-        (("aire acondicionado", "filtro", "gas", "climatización"), "Climatización"),
+        (("instalación de gas", "revisión de gas", "artefactos a gas", "olor a gas"), "Gasista"),
+        (("aire acondicionado", "filtro", "climatización", "split"), "Climatización"),
         (("pintura", "humedad", "muro"), "Pintura"),
         (("limpieza",), "Limpieza"),
         (("jardín", "jardiner"), "Jardinería"),

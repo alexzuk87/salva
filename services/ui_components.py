@@ -131,8 +131,11 @@ def _service_category_css(categories) -> str:
     return f"<style>{''.join(rules)}</style>"
 
 
-def _pick_category(key_prefix: str, categories, cols_n: int = 4) -> str | None:
-    """Grilla compacta: un botón por categoría con ícono inline."""
+def _pick_category(key_prefix: str, categories, cols_n: int = 4) -> tuple[str, str] | None:
+    """Grilla compacta: un botón por categoría con ícono inline.
+
+    Returns (ui_label, mapped_service_type) or ("Ver todos", "__all__").
+    """
     selected = None
     st.markdown(_service_category_css(categories), unsafe_allow_html=True)
     st.markdown('<span class="svc-cat-grid-root" aria-hidden="true"></span>', unsafe_allow_html=True)
@@ -147,12 +150,12 @@ def _pick_category(key_prefix: str, categories, cols_n: int = 4) -> str | None:
                 )
                 if st.button(
                     label,
-                    key=f"service_{char_key}",
+                    key=f"{key_prefix}_{char_key}",
                     use_container_width=True,
                     type="secondary",
                     help=desc or label,
                 ):
-                    selected = mapped if mapped else "__all__"
+                    selected = (label, mapped if mapped else "__all__")
     return selected
 
 
@@ -167,12 +170,12 @@ def _svg_img(path: Path, alt: str, css_class: str = "", size: int = 72) -> str:
     return f'<div class="avatar-fallback">{html.escape(alt[:1])}</div>'
 
 
-def form_category_picker(key_prefix: str = "fs") -> str | None:
+def form_category_picker(key_prefix: str = "fs") -> tuple[str, str] | None:
     cats = [c for c in HOME_CATEGORIES if c[0] != "Ver todos"]
     return _pick_category(key_prefix, cats, 4)
 
 
-def category_selector(key_prefix: str = "cat") -> str | None:
+def category_selector(key_prefix: str = "cat") -> tuple[str, str] | None:
     st.markdown('<p class="section-title">¿Qué necesitás resolver?</p>', unsafe_allow_html=True)
     st.markdown(
         '<p class="body-text">Elegí un servicio y SALVA te ayuda con el resto.</p>',
