@@ -557,6 +557,11 @@ def _reserva() -> None:
                 st.session_state.show_booking_receipt = True
                 st.session_state.show_deposit_payment = False
                 st.rerun()
+            if st.button("← Atrás", key=f"dep_back_{booking['id']}", use_container_width=False):
+                st.session_state.show_deposit_payment = False
+                st.session_state.show_booking_receipt = False
+                st.session_state.flow_step = 2
+                st.rerun()
         return
 
     # Confirmación previa (crear reserva)
