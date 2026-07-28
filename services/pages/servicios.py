@@ -1,5 +1,6 @@
 """Flujo de solicitud de servicio — 6 pasos."""
 
+import time
 from datetime import date
 
 import streamlit as st
@@ -222,9 +223,9 @@ def _form_wizard() -> None:
             locality = st.selectbox("Localidad / ciudad", suggestions + ["Otra"]) if suggestions else "Otra"
             if locality == "Otra":
                 locality = st.text_input("Ingresá tu localidad", value=req.get("locality", ""))
-            neighborhood = st.text_input("Barrio (opcional)", value=req.get("neighborhood", ""))
             address = st.text_input("Calle y número", value=req.get("address", ""))
             apartment = st.text_input("Piso / departamento (opcional)", value=req.get("apartment", ""))
+            neighborhood = st.text_input("Barrio (opcional)", value=req.get("neighborhood", ""))
             reference = st.text_input("Referencia para llegar (opcional)", value=req.get("location_reference", ""))
             if address.strip():
                 st.info(f"**Ubicación:** {location_summary(address, neighborhood, locality, province, apartment)}")
