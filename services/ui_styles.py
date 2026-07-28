@@ -619,6 +619,10 @@ div[data-testid="stHorizontalBlock"]:has(.svc-cat-marker) > :is(div[data-testid=
   display: block; text-align: center; background: var(--salva-warning-soft); color: var(--salva-warning);
   font-weight: 700; padding: 0.35rem 0.75rem; border-radius: 999px; margin: 0.5rem auto; max-width: 280px;
 }
+.receipt-status-badge.success {
+  display: block; text-align: center; background: var(--salva-success-soft); color: var(--salva-success);
+  font-weight: 700; padding: 0.35rem 0.75rem; border-radius: 999px; margin: 0.5rem auto; max-width: 280px;
+}
 
 /* Tracking v2 */
 .tracking-road-v2 { margin: 1rem 0; overflow: hidden; }

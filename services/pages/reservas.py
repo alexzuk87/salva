@@ -3,10 +3,10 @@
 import streamlit as st
 
 from services.bookings import (
-    PAYMENT_CONFIRMED,
     appointment_label,
     flow_step_for_booking,
     get_booking,
+    is_deposit_confirmed,
     list_bookings,
 )
 from services.formatting import format_ars
@@ -21,6 +21,8 @@ def open_booking_in_services(booking: dict) -> None:
     st.session_state.created_booking_id = booking["id"]
     st.session_state.pending_payment_booking_id = booking["id"]
     st.session_state.flow_step = flow_step_for_booking(booking)
+    if not is_deposit_confirmed(booking):
+        st.session_state.show_deposit_payment = True
     st.session_state.section = "Servicios"
     st.rerun()
 
@@ -49,16 +51,21 @@ def render() -> None:
         return
 
     for _, b in bookings.iterrows():
+        row = b.to_dict()
         with st.container(border=True):
             st.markdown(f"**{b['id']}** · {b['service_type']} · {b.get('booking_status', '—')}")
-            st.caption(f"{b['professional_name']} · {format_ars(b.get('approved_price') or b.get('initial_price'))} · {b.get('payment_status', '—')}")
-            st.caption(f"Estado: {b.get('service_status', '—')} · {appointment_label(b.to_dict())}")
+            st.caption(
+                f"{b['professional_name']} · "
+                f"{format_ars(b.get('approved_price') or b.get('initial_price'))} · "
+                f"{b.get('payment_status', '—')}"
+            )
+            st.caption(f"Estado: {b.get('service_status', '—')} · {appointment_label(row)}")
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("Ver seguimiento", key=f"trk_{b['id']}", use_container_width=True):
-                    open_booking_in_services(b.to_dict())
+                    open_booking_in_services(row)
             with c2:
-                if str(b.get("chat_enabled", "")).lower() in ("true", "1", "yes") or b.get("payment_status") == PAYMENT_CONFIRMED:
+                if is_deposit_confirmed(row) or str(b.get("chat_enabled", "")).lower() in ("true", "1", "yes"):
                     if st.button("Chatear con el profesional", key=f"chat_{b['id']}", use_container_width=True):
                         open_booking_chat(b["id"])
             if st.session_state.get("show_chat_res") == b["id"]:

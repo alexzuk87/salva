@@ -1,19 +1,22 @@
 """Flujo de solicitud de servicio — 6 pasos."""
 
-import time
 from datetime import date
 
 import streamlit as st
 
 from services.auth import authenticated_user
 from services.bookings import (
-    PAYMENT_CONFIRMED,
     SERVICE_STATUS_FLOW,
     accept_price_change,
     advance_service_status,
     appointment_label,
+    can_access_tracking,
+    can_pay_remaining,
     create_booking,
     get_booking,
+    is_deposit_confirmed,
+    is_fully_paid,
+    normalize_service_status,
     propose_price_change,
     update_booking,
 )
@@ -22,28 +25,34 @@ from services.diagnosis import build_diagnosis
 from services.formatting import format_ars
 from services.locations import PROVINCES, locality_options, location_summary
 from services.navigation import clear_active_flow, go
+from services.pricing import booking_totals, prices_from_professionals, split_deposit
 from services.service_categories import category_internal, category_label as visible_category_label, resolve_selection
 from services.service_guides import guide_for_category, render_category_guide
 from services.ui_components import (
     booking_confirmed_receipt_html,
-    booking_pending_receipt_html,
-    booking_receipt_html,
     card_brands_html,
     completed_service_receipt_html,
     diagnosis_box_html,
     form_category_picker,
-    payment_receipt_html,
     pro_card_html,
+    remaining_payment_receipt_html,
     render_chat_panel,
     render_flow_indicator,
     render_star_rating,
+    reservation_summary_card_html,
     review_html,
-    service_icon_html,
     tracking_road_html,
 )
 from services.payments import (
-    PAYMENT_METHODS, confirm_payment, detect_card_brand,
-    sanitize_card_input, sanitize_cvv, sanitize_month, sanitize_year, validate_card,
+    PAYMENT_METHODS,
+    confirm_deposit,
+    confirm_remaining,
+    detect_card_brand,
+    sanitize_card_input,
+    sanitize_cvv,
+    sanitize_month,
+    sanitize_year,
+    validate_card,
 )
 from services.professionals import (
     BADGE_TOOLTIP,
@@ -57,8 +66,13 @@ from services.professionals import (
 from services.ratings import get_rating, submit_completion
 from services.reviews import get_reviews_for_professional
 from services.scheduling import (
-    ASAP, URGENCY_LEVELS, available_slots, format_appointment, grouped_slots,
-    is_asap, min_appointment_date, slot_display,
+    ASAP,
+    URGENCY_LEVELS,
+    available_slots,
+    format_appointment,
+    format_selected_turno,
+    is_asap,
+    min_appointment_date,
 )
 from services.salvita import salvita_html
 from services.ui_styles import FLOW_STEPS
@@ -237,40 +251,67 @@ def _form_wizard() -> None:
     if fs == 4:
         with st.container(border=True):
             st.markdown('<p class="form-step-num">Paso 4 · ¿Cuándo?</p>', unsafe_allow_html=True)
-            urgency = st.selectbox("Urgencia", URGENCY_LEVELS, index=URGENCY_LEVELS.index(req.get("urgency", "Programado")) if req.get("urgency") in URGENCY_LEVELS else 2)
-            appt_date = st.date_input("Fecha", value=date.fromisoformat(req["preferred_date"]) if req.get("preferred_date") else min_appointment_date(urgency), min_value=min_appointment_date(urgency))
-            slots = available_slots(urgency, appt_date)
-            st.markdown("**Elegí un horario**")
-            selected_slot = req.get("appointment_time") or req.get("preferred_time", "")
-            if is_asap(selected_slot):
-                selected_slot = ASAP
-            for period, period_slots in grouped_slots(slots).items():
-                if not period_slots:
-                    continue
-                st.markdown(f"*{period}*")
-                cols = st.columns(3)
-                for i, slot in enumerate(period_slots):
-                    with cols[i % 3]:
-                        slot_key = ASAP if is_asap(slot) else slot
-                        slot_label = slot_display(slot)
-                        btn_key = f"slot_{slot_key.replace(':', '')}"
-                        if st.button(
-                            slot_label,
-                            key=btn_key,
-                            type="primary" if selected_slot == slot_key else "secondary",
-                            use_container_width=True,
-                        ):
-                            req["appointment_time"] = slot_key
-                            req["preferred_time"] = slot_key
-                            st.rerun()
+            urgency = st.selectbox(
+                "Urgencia",
+                URGENCY_LEVELS,
+                index=URGENCY_LEVELS.index(req.get("urgency", "Programado")) if req.get("urgency") in URGENCY_LEVELS else 2,
+            )
+            appt_date = st.date_input(
+                "Fecha",
+                value=date.fromisoformat(req["preferred_date"]) if req.get("preferred_date") else min_appointment_date(urgency),
+                min_value=min_appointment_date(urgency),
+            )
+
+            if urgency == "Emergencia":
+                # Valor interno seguro (string); nunca se parsea como entero.
+                req["appointment_time"] = ASAP
+                req["preferred_time"] = ASAP
+                st.info("Buscaremos al profesional disponible más cercano")
+            else:
+                # Solo franjas HH:MM; excluye ASAP / "Lo antes posible" del selector.
+                slots = [
+                    s for s in available_slots(urgency, appt_date)
+                    if not is_asap(s) and ":" in str(s)
+                ]
+                st.markdown("**Elegí un horario**")
+                current = str(req.get("appointment_time") or req.get("preferred_time") or "")
+                if is_asap(current) or current not in slots:
+                    current = ""
+                widget_key = f"fs4_time_{urgency}_{appt_date.isoformat()}"
+                if st.session_state.get(widget_key) not in slots:
+                    st.session_state[widget_key] = current or None
+                choice = st.selectbox(
+                    "Horario",
+                    options=slots,
+                    placeholder="Seleccioná un horario",
+                    label_visibility="collapsed",
+                    key=widget_key,
+                )
+                if choice:
+                    req["appointment_time"] = choice
+                    req["preferred_time"] = choice
+                    confirm = format_selected_turno(appt_date, choice)
+                    if confirm:
+                        st.success(confirm)
+                else:
+                    req["appointment_time"] = ""
+                    req["preferred_time"] = ""
+
+            has_time = bool(str(req.get("appointment_time") or "").strip())
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("← Atrás", key="fs4_back"):
                     st.session_state.form_step = 3
                     st.rerun()
             with c2:
-                if st.button("Buscar profesionales", type="primary", use_container_width=True, key="fs4_next"):
-                    if not req.get("appointment_time"):
+                if st.button(
+                    "Buscar profesionales",
+                    type="primary",
+                    use_container_width=True,
+                    key="fs4_next",
+                    disabled=not has_time,
+                ):
+                    if not has_time:
                         st.error("Seleccioná un horario.")
                     else:
                         req["urgency"] = urgency
@@ -282,16 +323,22 @@ def _form_wizard() -> None:
 
 def _profesionales() -> None:
     req = st.session_state.request
-    if st.session_state.diagnosis:
-        st.markdown(diagnosis_box_html(st.session_state.diagnosis), unsafe_allow_html=True)
-    st.markdown(salvita_html("searching"), unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown('<p class="section-title">Profesionales verificados</p>', unsafe_allow_html=True)
-        sort_by = st.selectbox("Ordenar por", ["Mejor calificados", "Menor precio", "Llega antes", "Más trabajos en tu zona", "Disponible hoy"], key="sort_filter")
-        trade = st.session_state.diagnosis.get("recommended_trade", req["service_type"]) if st.session_state.diagnosis else req["service_type"]
+        sort_by = st.selectbox(
+            "Ordenar por",
+            ["Mejor calificados", "Menor precio", "Llega antes", "Más trabajos en tu zona", "Disponible hoy"],
+            key="sort_filter",
+        )
+        trade = (
+            st.session_state.diagnosis.get("recommended_trade", req["service_type"])
+            if st.session_state.diagnosis
+            else req["service_type"]
+        )
         df = sort_professionals(
             recommend_professionals(
-                trade, req["urgency"],
+                trade,
+                req["urgency"],
                 req.get("appointment_time") or req.get("preferred_time", ""),
                 neighborhood=req.get("neighborhood", ""),
                 province=req.get("province", ""),
@@ -299,6 +346,20 @@ def _profesionales() -> None:
             ),
             sort_by,
         )
+        # Rango alineado exclusivamente a los profesionales visibles
+        if st.session_state.diagnosis is not None:
+            if df.empty:
+                st.session_state.diagnosis["price_range_low"] = None
+                st.session_state.diagnosis["price_range_high"] = None
+                st.session_state.diagnosis["professionals_available"] = 0
+            else:
+                low, high = prices_from_professionals(df["estimated_price"].tolist())
+                st.session_state.diagnosis["price_range_low"] = low
+                st.session_state.diagnosis["price_range_high"] = high
+                st.session_state.diagnosis["professionals_available"] = len(df)
+        if st.session_state.diagnosis:
+            st.markdown(diagnosis_box_html(st.session_state.diagnosis), unsafe_allow_html=True)
+        st.markdown(salvita_html("searching"), unsafe_allow_html=True)
         if df.empty:
             st.warning("No hay profesionales disponibles en tu zona.")
             if st.button("← Volver"):
@@ -308,9 +369,15 @@ def _profesionales() -> None:
         for _, pro in df.iterrows():
             pro_d = pro.to_dict()
             revs = get_reviews_for_professional(pro["id"], 2)
-            rh = "".join(review_html(r["customer_name"], r["rating"], r["comment"], r.get("neighborhood", "")) for _, r in revs.iterrows())
+            rh = "".join(
+                review_html(r["customer_name"], r["rating"], r["comment"], r.get("neighborhood", ""))
+                for _, r in revs.iterrows()
+            )
             zone = req.get("locality") or "tu zona"
-            st.markdown(pro_card_html(pro_d, zone, int(pro["neighborhood_jobs"]), pro["eta_label"], float(pro["estimated_price"]), rh), unsafe_allow_html=True)
+            st.markdown(
+                pro_card_html(pro_d, zone, int(pro["neighborhood_jobs"]), pro["eta_label"], float(pro["estimated_price"]), rh),
+                unsafe_allow_html=True,
+            )
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("Ver perfil", key=f"vp_{pro['id']}"):
@@ -322,10 +389,92 @@ def _profesionales() -> None:
                     st.rerun()
             if st.session_state.get("view_pro_id") == pro["id"]:
                 st.caption(BADGE_TOOLTIP)
-                st.markdown(f"**Experiencia:** {pro.get('experience_years', 0)} años · **Cobertura:** {pro.get('city', '')}, {pro.get('province', '')}")
+                st.markdown(
+                    f"**Experiencia:** {pro.get('experience_years', 0)} años · "
+                    f"**Cobertura:** {pro.get('city', '')}, {pro.get('province', '')}"
+                )
         if st.button("← Volver"):
             st.session_state.flow_step = 1
             st.rerun()
+
+
+def _render_money_methods(booking: dict, amount: float, kind: str, form_key: str) -> bool:
+    """Formulario de pago simulado. kind: deposit|remaining. Devuelve True si cobró."""
+    pro = get_professional(booking["professional_id"])
+    method = st.radio("Método de pago", PAYMENT_METHODS, key=f"{form_key}_method")
+    paid = False
+    if method == "Tarjeta de crédito":
+        st.markdown(
+            '<div class="sim-banner">Pago simulado para fines académicos. '
+            "SALVA no almacena datos sensibles de la tarjeta.</div>",
+            unsafe_allow_html=True,
+        )
+        with st.form(f"{form_key}_card"):
+            cn_raw = st.text_input(
+                "Número de tarjeta",
+                placeholder="1234 5678 9012 3456",
+                max_chars=19,
+                help="Ingresá los 16 números de la tarjeta",
+            )
+            cn = sanitize_card_input(cn_raw)
+            brand = detect_card_brand(cn)
+            st.markdown(card_brands_html(brand), unsafe_allow_html=True)
+            holder = st.text_input("Titular de la tarjeta")
+            c1, c2, c3 = st.columns([1, 1, 1])
+            with c1:
+                month = st.text_input("Mes (MM)", placeholder="MM", max_chars=2)
+            with c2:
+                year = st.text_input("Año (AA)", placeholder="AA", max_chars=2)
+            with c3:
+                cvv = st.text_input("CVV", type="password", max_chars=3)
+            label = f"Pagar seña de {format_ars(amount)}" if kind == "deposit" else f"Pagar saldo de {format_ars(amount)}"
+            if st.form_submit_button(label, type="primary", use_container_width=True):
+                ok, msg, brand = validate_card(
+                    cn_raw, holder, sanitize_month(month), sanitize_year(year), sanitize_cvv(cvv)
+                )
+                if ok:
+                    digits = "".join(ch for ch in cn_raw if ch.isdigit())
+                    if kind == "deposit":
+                        confirm_deposit(booking["id"], method, digits[-4:], brand)
+                        add_system_message(booking["id"], "Seña confirmada")
+                    else:
+                        confirm_remaining(booking["id"], method, digits[-4:], brand)
+                        add_system_message(booking["id"], "Pago completado")
+                    paid = True
+                else:
+                    st.error(msg)
+    elif method == "SALVA Cuenta":
+        from services.accounts import ACCOUNT_CUENTA, get_balance, pay_from_cuenta
+
+        bal = get_balance(ACCOUNT_CUENTA)
+        st.markdown(f"**Saldo SALVA Cuenta:** {format_ars(bal)}")
+        btn = f"Pagar seña con SALVA Cuenta ({format_ars(amount)})" if kind == "deposit" else f"Pagar saldo con SALVA Cuenta ({format_ars(amount)})"
+        if st.button(btn, type="primary", use_container_width=True, key=f"{form_key}_cuenta"):
+            desc = f"Seña {booking['service_type']}" if kind == "deposit" else f"Saldo {booking['service_type']}"
+            ok, msg = pay_from_cuenta(float(amount), booking["id"], desc)
+            if ok:
+                if kind == "deposit":
+                    confirm_deposit(booking["id"], method, "", "")
+                    add_system_message(booking["id"], "Seña confirmada")
+                else:
+                    confirm_remaining(booking["id"], method, "", "")
+                    add_system_message(booking["id"], "Pago completado")
+                paid = True
+            else:
+                st.error(msg)
+    else:
+        alias = pro.get("bank_alias", "salva.pago") if pro else "salva.pago"
+        st.markdown(f"**Alias:** `{alias}` · **Monto:** {format_ars(amount)} · Ref: {booking['id']}")
+        btn = f"Confirmar seña simulada ({format_ars(amount)})" if kind == "deposit" else f"Confirmar saldo simulado ({format_ars(amount)})"
+        if st.button(btn, type="primary", use_container_width=True, key=f"{form_key}_xfer"):
+            if kind == "deposit":
+                confirm_deposit(booking["id"], method)
+                add_system_message(booking["id"], "Seña confirmada")
+            else:
+                confirm_remaining(booking["id"], method)
+                add_system_message(booking["id"], "Pago completado")
+            paid = True
+    return paid
 
 
 def _reserva() -> None:
@@ -335,68 +484,120 @@ def _reserva() -> None:
         st.session_state.flow_step = 2
         st.rerun()
         return
-    price = estimate_price(pro["base_price"], req["urgency"])
+    price = float(estimate_price(pro["base_price"], req["urgency"]))
+    total, deposit, remaining = split_deposit(price)
     eta = estimate_arrival(req["urgency"], int(pro.get("eta_base_minutes", 45)), True)
     appt = format_appointment(req.get("appointment_date", ""), req.get("appointment_time", ""))
-    loc = req.get("location") or location_summary(req.get("address", ""), req.get("neighborhood", ""), req.get("locality", ""), req.get("province", ""), req.get("apartment", ""))
+    loc = req.get("location") or location_summary(
+        req.get("address", ""),
+        req.get("neighborhood", ""),
+        req.get("locality", ""),
+        req.get("province", ""),
+        req.get("apartment", ""),
+    )
+    price_type = str(pro.get("price_type", "Precio orientativo"))
 
     bid = st.session_state.get("created_booking_id")
-    if bid and st.session_state.get("show_booking_receipt"):
-        booking = get_booking(bid)
+    booking = get_booking(bid) if bid else None
+
+    # Comprobante post-seña
+    if booking and is_deposit_confirmed(booking) and st.session_state.get("show_booking_receipt"):
         pro_d = get_professional(booking["professional_id"]) or pro
-        amount = float(booking.get("approved_price") or booking.get("initial_price") or price)
-        if booking.get("payment_status") == PAYMENT_CONFIRMED:
-            st.markdown(booking_confirmed_receipt_html(booking, pro_d, amount, appt, loc), unsafe_allow_html=True)
-            st.markdown(salvita_html("success", "Listo, tu reserva quedó confirmada."), unsafe_allow_html=True)
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                if st.button("Ir al seguimiento", type="primary", use_container_width=True):
-                    st.session_state.show_booking_receipt = False
-                    st.session_state.flow_step = 5
-                    st.rerun()
-            with c2:
-                if st.button("Abrir chat", use_container_width=True):
-                    st.session_state.show_chat = True
-                    st.rerun()
-            with c3:
-                if st.button("Ver en Mis reservas", use_container_width=True):
-                    go("Reservas")
-        else:
-            st.markdown(booking_pending_receipt_html(booking, pro_d, amount, appt, loc), unsafe_allow_html=True)
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                if st.button("Pagar y confirmar reserva", type="primary", use_container_width=True):
-                    st.session_state.show_booking_receipt = False
-                    st.session_state.flow_step = 4
-                    st.rerun()
-            with c2:
-                if st.button("Volver a profesionales", use_container_width=True):
-                    st.session_state.show_booking_receipt = False
-                    st.session_state.flow_step = 2
-                    st.rerun()
-            with c3:
-                if st.button("Ver en Mis reservas", use_container_width=True):
-                    go("Reservas")
-        if st.session_state.get("show_chat") and booking.get("payment_status") == PAYMENT_CONFIRMED:
+        st.markdown(
+            booking_confirmed_receipt_html(booking, pro_d, float(total), appointment_label(booking), booking.get("location", loc)),
+            unsafe_allow_html=True,
+        )
+        st.markdown(salvita_html("success", "Listo, tu seña quedó confirmada."), unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("Ir al seguimiento", type="primary", use_container_width=True):
+                st.session_state.show_booking_receipt = False
+                st.session_state.show_deposit_payment = False
+                st.session_state.flow_step = 5
+                st.rerun()
+        with c2:
+            if st.button("Abrir chat", use_container_width=True):
+                st.session_state.show_chat = True
+                st.rerun()
+        with c3:
+            if st.button("Ver en Mi hogar", use_container_width=True):
+                go("Mi hogar")
+        if st.session_state.get("show_chat"):
             render_chat_panel(booking, pro_d)
         return
 
+    # Formulario de pago de seña (misma etapa Reserva)
+    if booking and not is_deposit_confirmed(booking) and st.session_state.get("show_deposit_payment"):
+        totals = booking_totals(booking)
+        with st.container(border=True):
+            st.markdown('<p class="section-title">Pagar seña para confirmar</p>', unsafe_allow_html=True)
+            st.markdown(
+                reservation_summary_card_html(
+                    pro,
+                    booking.get("service_type", ""),
+                    appointment_label(booking),
+                    booking.get("location", loc),
+                    float(totals["total"]),
+                    float(totals["deposit"]),
+                    float(totals["remaining"]),
+                    booking.get("price_type", price_type),
+                ),
+                unsafe_allow_html=True,
+            )
+            st.info(
+                "La reserva quedará confirmada cuando se acredite la seña. "
+                "El importe se descontará del total del servicio."
+            )
+            st.caption(
+                "La devolución o retención de la seña dependerá de las condiciones de cancelación "
+                "de la reserva. Operación simulada para fines académicos."
+            )
+            if _render_money_methods(booking, float(totals["deposit"]), "deposit", f"dep_{booking['id']}"):
+                st.session_state.show_booking_receipt = True
+                st.session_state.show_deposit_payment = False
+                st.rerun()
+        return
+
+    # Confirmación previa (crear reserva)
     with st.container(border=True):
         st.markdown('<p class="section-title">Confirmar reserva</p>', unsafe_allow_html=True)
+        st.markdown(
+            reservation_summary_card_html(
+                pro,
+                req.get("service_type", ""),
+                appt,
+                loc,
+                float(total),
+                float(deposit),
+                float(remaining),
+                price_type,
+            ),
+            unsafe_allow_html=True,
+        )
         st.markdown(f"**Problema:** {req.get('description', '')}")
-        st.markdown(f"**Profesional:** {pro['name']} · **Precio:** {format_ars(price)} ({pro.get('price_type', '')})")
-        st.markdown(f"**Ubicación:** {loc}")
-        st.markdown(f"**Turno:** {appt} · Llegada ~{eta}")
-        st.info("El chat se habilitará cuando confirmes el pago.")
+        st.markdown(f"**Llegada estimada:** ~{eta}")
+        if "orientativo" in price_type.lower():
+            st.info(
+                "El valor se toma como base para calcular la seña. Si el alcance o el precio cambia, "
+                "deberá informarse y ser aprobado por el cliente dentro de SALVA antes de continuar."
+            )
+        st.info(
+            "La reserva quedará confirmada cuando se acredite la seña. "
+            "El importe se descontará del total del servicio."
+        )
         st.caption(
             "Al confirmar la reserva, aceptás las "
             "[condiciones del servicio](#condiciones-servicio) y la "
             "[Garantía SALVA](#garantia-salva)."
         )
+        st.caption(
+            "La devolución o retención de la seña dependerá de las condiciones de cancelación "
+            "de la reserva. Operación simulada para fines académicos."
+        )
         with st.expander("Condiciones del servicio y Garantía SALVA", expanded=False):
             st.markdown(
                 "**Condiciones del servicio:** el precio orientativo puede ajustarse "
-                "tras la evaluación en domicilio. El turno queda reservado al confirmar."
+                "tras la evaluación en domicilio. El turno queda reservado al confirmar la seña."
             )
             st.markdown(
                 "**Garantía SALVA:** cobertura post-servicio sujeta a revisión. "
@@ -408,122 +609,111 @@ def _reserva() -> None:
                 st.session_state.flow_step = 2
                 st.rerun()
         with c2:
-            if st.button("Confirmar reserva", type="primary", use_container_width=True):
+            if st.button(
+                f"Confirmar y pagar seña de {format_ars(deposit)}",
+                type="primary",
+                use_container_width=True,
+            ):
                 b = create_booking(
-                    customer_name=_customer_name(req), province=req.get("province", ""),
-                    locality=req.get("locality", ""), neighborhood=req.get("neighborhood", ""),
-                    address=req.get("address", ""), apartment=req.get("apartment", ""),
-                    location_reference=req.get("location_reference", ""), location=loc,
-                    service_type=req["service_type"], problem_description=req.get("description", ""),
-                    urgency=req["urgency"], preferred_date=req.get("appointment_date", ""),
+                    customer_name=_customer_name(req),
+                    province=req.get("province", ""),
+                    locality=req.get("locality", ""),
+                    neighborhood=req.get("neighborhood", ""),
+                    address=req.get("address", ""),
+                    apartment=req.get("apartment", ""),
+                    location_reference=req.get("location_reference", ""),
+                    location=loc,
+                    service_type=req["service_type"],
+                    problem_description=req.get("description", ""),
+                    urgency=req["urgency"],
+                    preferred_date=req.get("appointment_date", ""),
                     preferred_time=req.get("appointment_time", ""),
                     appointment_date=req.get("appointment_date", ""),
                     appointment_time=req.get("appointment_time", ""),
-                    professional_id=pro["id"], estimated_arrival=str(eta), terms_accepted=True,
+                    professional_id=pro["id"],
+                    estimated_arrival=str(eta),
+                    terms_accepted=True,
                 )
                 st.session_state.created_booking_id = b["id"]
                 st.session_state.pending_payment_booking_id = b["id"]
                 st.session_state.active_booking_id = b["id"]
                 seed_booking_chat(b["id"], pro["name"], paid=False)
                 add_system_message(b["id"], "Turno reservado")
-                st.session_state.show_booking_receipt = True
+                st.session_state.show_deposit_payment = True
+                st.session_state.show_booking_receipt = False
                 st.rerun()
 
 
 def _pago() -> None:
-    bid = st.session_state.pending_payment_booking_id or st.session_state.created_booking_id
+    """Paso Pago: redirige a seña (Reserva) o cobra el saldo pendiente."""
+    bid = st.session_state.pending_payment_booking_id or st.session_state.created_booking_id or st.session_state.active_booking_id
     booking = get_booking(bid) if bid else None
     if not booking:
         st.session_state.flow_step = 3
         st.rerun()
         return
-    if booking.get("payment_status") == PAYMENT_CONFIRMED:
-        if st.session_state.get("show_payment_receipt"):
-            amount = float(booking.get("approved_price") or booking.get("initial_price") or 0)
-            pro_d = get_professional(booking["professional_id"]) or {}
-            appt = appointment_label(booking)
-            loc = booking.get("location", "")
-            st.markdown(booking_confirmed_receipt_html(booking, pro_d, amount, appt, loc), unsafe_allow_html=True)
-            if st.button("Ir al seguimiento", type="primary", use_container_width=True):
-                st.session_state.show_payment_receipt = False
-                st.session_state.flow_step = 5
-                st.rerun()
-            return
-        st.session_state.flow_step = 5
+
+    if not is_deposit_confirmed(booking):
+        st.session_state.created_booking_id = booking["id"]
+        st.session_state.show_deposit_payment = True
+        st.session_state.flow_step = 3
         st.rerun()
         return
-    pro = get_professional(booking["professional_id"])
-    amount = float(booking.get("approved_price") or booking.get("initial_price") or 0)
-    with st.container(border=True):
-        st.markdown('<p class="section-title">Completar pago</p>', unsafe_allow_html=True)
-        st.markdown(f"**{booking['professional_name']}** · {booking['service_type']} · **{format_ars(amount)}** · {booking['id']}")
-        method = st.radio("Método de pago", PAYMENT_METHODS)
-        if method == "Tarjeta de crédito":
-            st.markdown('<div class="sim-banner">Pago simulado para fines académicos. SALVA no almacena datos sensibles de la tarjeta.</div>', unsafe_allow_html=True)
-            with st.form(f"pay_card_{bid}"):
-                cn_raw = st.text_input(
-                    "Número de tarjeta",
-                    placeholder="1234 5678 9012 3456",
-                    max_chars=19,
-                    help="Ingresá los 16 números de la tarjeta",
-                )
-                cn = sanitize_card_input(cn_raw)
-                brand = detect_card_brand(cn)
-                st.markdown(card_brands_html(brand), unsafe_allow_html=True)
-                st.caption("Ingresá los 16 números de la tarjeta.")
-                holder = st.text_input("Titular de la tarjeta")
-                c1, c2, c3 = st.columns([1, 1, 1])
-                with c1:
-                    month = st.text_input("Mes (MM)", placeholder="MM", max_chars=2)
-                with c2:
-                    year = st.text_input("Año (AA)", placeholder="AA", max_chars=2)
-                with c3:
-                    cvv = st.text_input("CVV", type="password", max_chars=3)
-                st.caption("Formato visual: MM / AA")
-                if st.form_submit_button("Confirmar pago simulado", type="primary", use_container_width=True):
-                    ok, msg, brand = validate_card(
-                        cn_raw, holder, sanitize_month(month), sanitize_year(year), sanitize_cvv(cvv)
-                    )
-                    if ok:
-                        digits = "".join(ch for ch in cn_raw if ch.isdigit())
-                        confirm_payment(bid, method, digits[-4:], brand)
-                        add_system_message(bid, "Pago confirmado")
-                        st.session_state.show_payment_receipt = True
-                        st.rerun()
-                    else:
-                        st.error(msg)
-        elif method == "SALVA Cuenta":
-            from services.accounts import get_balance, pay_from_cuenta, ACCOUNT_CUENTA
-            bal = get_balance(ACCOUNT_CUENTA)
-            st.markdown(f"**Saldo SALVA Cuenta:** {format_ars(bal)}")
-            if st.button("Pagar con SALVA Cuenta", type="primary", use_container_width=True):
-                ok, msg = pay_from_cuenta(amount, bid, f"Pago servicio {booking['service_type']}")
-                if ok:
-                    confirm_payment(bid, method, "", "")
-                    add_system_message(bid, "Pago confirmado")
-                    st.session_state.show_payment_receipt = True
-                    st.rerun()
-                else:
-                    st.error(msg)
-        else:
-            alias = pro.get("bank_alias", "salva.pago") if pro else "salva.pago"
-            st.markdown(f"**Alias:** `{alias}` · **Monto:** {format_ars(amount)} · Ref: {booking['id']}")
-            if st.button("Confirmar pago simulado", type="primary", use_container_width=True):
-                confirm_payment(bid, method)
-                add_system_message(bid, "Pago confirmado")
-                st.session_state.show_payment_receipt = True
+
+    if is_fully_paid(booking):
+        if st.session_state.get("show_payment_receipt"):
+            pro_d = get_professional(booking["professional_id"]) or {}
+            st.markdown(
+                remaining_payment_receipt_html(
+                    booking, pro_d, appointment_label(booking), booking.get("location", "")
+                ),
+                unsafe_allow_html=True,
+            )
+            if st.button("Continuar a calificación", type="primary", use_container_width=True):
+                st.session_state.show_payment_receipt = False
+                st.session_state.flow_step = 6
                 st.rerun()
+            return
+        st.session_state.flow_step = 6
+        st.rerun()
+        return
+
+    if not can_pay_remaining(booking):
+        st.info("El saldo del 80% se habilita cuando el trabajo esté finalizado.")
+        if st.button("Ir al seguimiento", type="primary", use_container_width=True):
+            st.session_state.flow_step = 5
+            st.rerun()
+        return
+
+    totals = booking_totals(booking)
+    with st.container(border=True):
+        st.markdown('<p class="section-title">El trabajo fue finalizado</p>', unsafe_allow_html=True)
+        st.markdown(f"**Precio total:** {format_ars(totals['total'])}")
+        st.markdown(f"**Seña abonada:** {format_ars(totals['deposit'])}")
+        st.markdown(f"**Saldo a pagar (80%):** {format_ars(totals['remaining'])}")
+        if _render_money_methods(booking, float(totals["remaining"]), "remaining", f"rem_{booking['id']}"):
+            st.session_state.show_payment_receipt = True
+            st.rerun()
 
 
 def _seguimiento() -> None:
     bid = st.session_state.active_booking_id or st.session_state.created_booking_id
     booking = get_booking(bid) if bid else None
-    if not booking or booking.get("payment_status") != PAYMENT_CONFIRMED:
-        st.session_state.flow_step = 4
+    if not booking or not can_access_tracking(booking):
+        st.session_state.flow_step = 3
+        st.session_state.show_deposit_payment = True
         st.rerun()
         return
+
+    if is_fully_paid(booking) and normalize_service_status(booking) == "Pago completado":
+        st.session_state.flow_step = 6
+        st.rerun()
+        return
+
     pro = get_professional(booking["professional_id"]) or {}
-    current = booking.get("service_status") or SERVICE_STATUS_FLOW[0]
+    current = normalize_service_status(booking)
+    totals = booking_totals(booking)
+
     with st.container(border=True):
         st.markdown('<p class="section-title">Seguimiento</p>', unsafe_allow_html=True)
         st.markdown(salvita_html("travelling", "Tu profesional está en camino."), unsafe_allow_html=True)
@@ -531,42 +721,74 @@ def _seguimiento() -> None:
             c1, c2 = st.columns([1, 3])
             with c1:
                 from services.ui_components import avatar_img_html
+
                 st.markdown(avatar_img_html(pro, 72), unsafe_allow_html=True)
             with c2:
                 st.markdown(f"**{booking['professional_name']}**")
                 st.caption(f"Llegada estimada: {booking.get('estimated_arrival', '—')}")
-        st.markdown(tracking_road_html(current, SERVICE_STATUS_FLOW, booking.get("service_type", ""), pro), unsafe_allow_html=True)
-        st.caption("Control de demostración")
-        bc1, bc2 = st.columns(2)
-        with bc1:
-            if current != "Servicio finalizado" and not booking.get("price_change_proposed"):
-                if st.button("Continuar al siguiente estado", type="primary", use_container_width=True, key="adv_track"):
-                    advance_service_status(booking["id"])
-                    st.rerun()
-        with bc2:
-            if st.button("Ver chat", use_container_width=True, key="track_chat"):
-                st.session_state.show_chat = True
-                st.rerun()
+        st.markdown(
+            tracking_road_html(current, SERVICE_STATUS_FLOW, booking.get("service_type", ""), pro),
+            unsafe_allow_html=True,
+        )
+        st.markdown(f"**Precio total:** {format_ars(totals['total'])}")
+        st.markdown(f"**Seña abonada:** {format_ars(totals['deposit'])}")
+        st.markdown(f"**Saldo pendiente:** {format_ars(totals['remaining'])}")
         st.markdown(f"**Turno:** {appointment_label(booking)}")
         st.markdown(f"**Ubicación:** {booking.get('location', '—')}")
-        st.markdown(f"**Monto:** {format_ars(booking.get('approved_price') or booking.get('initial_price'))}")
+
+        # Pago del saldo cuando el trabajo terminó
+        if can_pay_remaining(booking) or current in ("Servicio finalizado", "Saldo pendiente"):
+            if current == "Servicio finalizado":
+                # Pasar a Saldo pendiente para desbloquear UI de cobro
+                if str(booking.get("remaining_status") or "") != "pendiente":
+                    advance_service_status(booking["id"])
+                    st.rerun()
+                    return
+            st.markdown("---")
+            st.markdown("### El trabajo fue finalizado")
+            st.markdown(f"**Precio total:** {format_ars(totals['total'])}")
+            st.markdown(f"**Seña abonada:** {format_ars(totals['deposit'])}")
+            st.markdown(f"**Saldo a pagar (80%):** {format_ars(totals['remaining'])}")
+            if st.button(
+                f"Pagar saldo de {format_ars(totals['remaining'])}",
+                type="primary",
+                use_container_width=True,
+                key="track_pay_remaining",
+            ):
+                st.session_state.flow_step = 4
+                st.rerun()
+        else:
+            st.caption("Control de demostración")
+            bc1, bc2 = st.columns(2)
+            with bc1:
+                if current not in ("Saldo pendiente", "Pago completado") and not booking.get("price_change_proposed"):
+                    if st.button("Continuar al siguiente estado", type="primary", use_container_width=True, key="adv_track"):
+                        advance_service_status(booking["id"])
+                        st.rerun()
+            with bc2:
+                if st.button("Ver chat", use_container_width=True, key="track_chat"):
+                    st.session_state.show_chat = True
+                    st.rerun()
+
         if st.session_state.get("show_chat"):
             render_chat_panel(booking, pro)
+
         if booking.get("price_change_proposed"):
-            st.warning(f"Cambio propuesto: {format_ars(booking['price_change_proposed'])} — {booking.get('price_change_reason', '')}")
+            st.warning(
+                f"Cambio propuesto: {format_ars(booking['price_change_proposed'])} — "
+                f"{booking.get('price_change_reason', '')}"
+            )
+            st.caption("La seña ya abonada no se recalcula; solo se actualiza el saldo pendiente.")
             if st.button("Aceptar nuevo precio", type="primary"):
                 accept_price_change(booking["id"])
                 st.rerun()
             if st.button("Rechazar y solicitar asistencia"):
                 go("Garantía")
-        else:
+        elif current not in ("Saldo pendiente", "Pago completado", "Servicio finalizado"):
             if st.button("Simular cambio de precio", use_container_width=True):
-                p = float(booking.get("approved_price") or booking.get("initial_price")) * 1.1
+                p = float(totals["total"]) * 1.1
                 propose_price_change(booking["id"], p, "Materiales adicionales en sitio.")
                 st.rerun()
-    if current == "Servicio finalizado":
-        st.session_state.flow_step = 6
-        st.rerun()
 
 
 def _finalizacion() -> None:
@@ -574,6 +796,17 @@ def _finalizacion() -> None:
     booking = get_booking(bid) if bid else None
     if not booking:
         return
+    if not is_fully_paid(booking):
+        if can_pay_remaining(booking):
+            st.session_state.flow_step = 4
+        elif can_access_tracking(booking):
+            st.session_state.flow_step = 5
+        else:
+            st.session_state.flow_step = 3
+            st.session_state.show_deposit_payment = True
+        st.rerun()
+        return
+
     pro = get_professional(booking["professional_id"]) or {}
     existing = get_rating(booking["id"])
     work_done = (
@@ -582,11 +815,13 @@ def _finalizacion() -> None:
         or booking.get("service_type")
         or "Servicio completado"
     )
+    totals = booking_totals(booking)
     with st.container(border=True):
         st.markdown('<p class="section-title">Servicio finalizado</p>', unsafe_allow_html=True)
         st.markdown(
             f"**{booking['service_type']}** con {booking['professional_name']} · "
-            f"{format_ars(booking.get('approved_price') or booking.get('initial_price'))}"
+            f"Total {format_ars(totals['total'])} · Seña {format_ars(totals['deposit'])} · "
+            f"Saldo {format_ars(totals['remaining'])}"
         )
         if existing and existing.get("rating"):
             st.markdown(
@@ -615,7 +850,7 @@ def _finalizacion() -> None:
                 type="primary",
                 disabled=not bool(rating),
             )
-        if st.button("Reportar un problema", key=f"fin_issue_pre_{booking['id']}", use_container_width=True):
+        if st.button("Reportar un problema / iniciar reclamo", key=f"fin_issue_pre_{booking['id']}", use_container_width=True):
             go("Garantía")
         if submitted:
             rating = st.session_state.get(f"rating_val_{booking['id']}")

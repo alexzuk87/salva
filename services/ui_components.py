@@ -250,13 +250,22 @@ def service_icon_html(category: str) -> str:
 
 def diagnosis_box_html(diagnosis: dict) -> str:
     from services.formatting import format_ars as fa
+
+    low = diagnosis.get("price_range_low")
+    high = diagnosis.get("price_range_high")
+    if low is None or high is None:
+        price_line = ""
+    elif float(low) == float(high):
+        price_line = f'<p><strong>Precio disponible:</strong> {fa(low)}</p>'
+    else:
+        price_line = f'<p><strong>Precios disponibles:</strong> {fa(low)} a {fa(high)}</p>'
     return (
         f'<div class="diagnosis-box fade-in">'
         f'<p class="form-step-num">Diagnóstico orientativo del prototipo</p>'
         f'<p><strong>Problema:</strong> {html.escape(str(diagnosis.get("problem_reported", "")))}</p>'
         f'<p><strong>Oficio:</strong> {html.escape(str(diagnosis.get("recommended_trade", "")))} · '
         f'<strong>Urgencia:</strong> {html.escape(str(diagnosis.get("urgency", "")))}</p>'
-        f'<p><strong>Rango:</strong> {fa(diagnosis.get("price_range_low", 0))} – {fa(diagnosis.get("price_range_high", 0))}</p>'
+        f'{price_line}'
         f'<p><strong>Profesionales en tu zona:</strong> {html.escape(str(diagnosis.get("professionals_available", 0)))}</p>'
         f'</div>'
     )
@@ -342,59 +351,134 @@ def pro_card_html(pro: dict, zone_label: str, hood_jobs: int, eta: str, price: f
 
 def booking_pending_receipt_html(booking: dict, pro: dict, amount: float, appt_label: str, location: str) -> str:
     from services.branding import logo_header_html
+    from services.pricing import booking_totals
+
     logo = logo_header_html()
     avatar = avatar_img_html(pro, 56)
-    chat_on = str(booking.get("chat_enabled", "")).lower() in ("true", "1", "yes")
+    totals = booking_totals(booking)
     return (
         f'<div class="receipt-card fade-in receipt-pending">'
         f'<div class="receipt-logo">{logo}</div>'
         f'<div class="receipt-clock">🕐</div>'
-        f'<p class="receipt-status-badge pending">Turno reservado · Pago pendiente</p>'
+        f'<p class="receipt-status-badge pending">Turno reservado · Seña pendiente</p>'
         f'<h2 class="receipt-title">Tu turno quedó reservado</h2>'
-        f'<p class="support-text" style="text-align:center">Para confirmar definitivamente la reserva, completá el pago.</p>'
-        f'<p class="support-text" style="text-align:center">Conservaremos este turno durante 15 minutos.</p>'
+        f'<p class="support-text" style="text-align:center">'
+        f'La reserva quedará confirmada cuando se acredite la seña. '
+        f'El importe se descontará del total del servicio.</p>'
         f'<p class="receipt-id">{html.escape(booking["id"])}</p>'
         f'<hr class="receipt-divider"/>'
         f'<div class="receipt-pro">{avatar}<div><strong>{html.escape(pro.get("name",""))}</strong>'
         f'<br/><span class="support-text">{html.escape(booking.get("service_type",""))}</span></div></div>'
         f'<p><strong>Turno:</strong> {html.escape(appt_label)}</p>'
         f'<p><strong>Ubicación:</strong> {html.escape(location)}</p>'
-        f'<p><strong>Monto:</strong> {format_ars(amount)} · {html.escape(pro.get("price_type",""))}</p>'
-        f'<p><strong>Pago:</strong> Pendiente</p>'
-        f'<p><strong>Garantía:</strong> Se activa al confirmar el pago.</p>'
-        f'<p><strong>Chat:</strong> {"Habilitado" if chat_on else "Se habilita al confirmar el pago"}</p>'
+        f'<p><strong>Precio total:</strong> {format_ars(totals["total"])}</p>'
+        f'<p><strong>Seña (20%):</strong> {format_ars(totals["deposit"])}</p>'
+        f'<p><strong>Saldo (80%):</strong> {format_ars(totals["remaining"])}</p>'
+        f'<p><strong>Garantía:</strong> Se activa al confirmar la seña.</p>'
+        f'<p><strong>Chat:</strong> Se habilita al confirmar la seña</p>'
         f'</div>'
     )
 
 
 def booking_confirmed_receipt_html(booking: dict, pro: dict, amount: float, appt_label: str, location: str) -> str:
     from services.branding import logo_header_html
+    from services.pricing import booking_totals
+
     logo = logo_header_html()
     avatar = avatar_img_html(pro, 56)
+    totals = booking_totals(booking)
+    method = booking.get("deposit_payment_method") or booking.get("payment_method", "")
+    paid_at = booking.get("deposit_paid_at") or booking.get("confirmed_at") or booking.get("paid_at", "")
     return (
         f'<div class="receipt-card fade-in success-pop">'
         f'<div class="receipt-logo">{logo}</div>'
         f'<div class="receipt-check anim-check">✓</div>'
         f'<h2 class="receipt-title">Reserva confirmada</h2>'
-        f'<p class="support-text" style="text-align:center">Tu pago fue confirmado y el profesional ya recibió la reserva.</p>'
+        f'<p class="receipt-status-badge success">Seña confirmada</p>'
+        f'<p class="support-text" style="text-align:center">'
+        f'Tu seña fue acreditada y el profesional ya recibió la reserva.</p>'
         f'<p class="receipt-id">{html.escape(booking["id"])}</p>'
         f'<hr class="receipt-divider"/>'
         f'<div class="receipt-pro">{avatar}<div><strong>{html.escape(pro.get("name",""))}</strong>'
         f'<br/><span class="support-text">{html.escape(booking.get("service_type",""))}</span></div></div>'
         f'<p><strong>Turno:</strong> {html.escape(appt_label)}</p>'
         f'<p><strong>Ubicación:</strong> {html.escape(location)}</p>'
-        f'<p><strong>Monto:</strong> {format_ars(amount)}</p>'
-        f'<p><strong>Pago:</strong> {html.escape(booking.get("payment_method",""))} · {html.escape(booking.get("card_brand",""))} ··{html.escape(booking.get("payment_last_four",""))}</p>'
+        f'<p><strong>Precio total:</strong> {format_ars(totals["total"])}</p>'
+        f'<p><strong>Seña abonada:</strong> {format_ars(totals["deposit"])}</p>'
+        f'<p><strong>Saldo pendiente:</strong> {format_ars(totals["remaining"])}</p>'
+        f'<p><strong>Medio de pago:</strong> {html.escape(method)}'
+        f'{" · " + html.escape(booking.get("card_brand","")) if booking.get("card_brand") else ""}'
+        f'{" ··" + html.escape(booking.get("payment_last_four","")) if booking.get("payment_last_four") else ""}</p>'
         f'<p><strong>Referencia:</strong> {html.escape(booking.get("payment_reference",""))}</p>'
+        f'<p><strong>Operación:</strong> {html.escape(paid_at)}</p>'
+        f'<p><strong>Estado:</strong> Seña confirmada</p>'
         f'<p><strong>Garantía:</strong> Cobertura activa</p>'
         f'<p><strong>Chat:</strong> Habilitado</p>'
-        f'<p class="support-text">Confirmado: {html.escape(booking.get("confirmed_at", booking.get("paid_at","")))}</p>'
+        f'</div>'
+    )
+
+
+def remaining_payment_receipt_html(booking: dict, pro: dict, appt_label: str, location: str) -> str:
+    from services.branding import logo_header_html
+    from services.pricing import booking_totals
+
+    logo = logo_header_html()
+    avatar = avatar_img_html(pro, 56)
+    totals = booking_totals(booking)
+    method = booking.get("remaining_payment_method") or booking.get("payment_method", "")
+    paid_at = booking.get("remaining_paid_at") or booking.get("paid_at", "")
+    return (
+        f'<div class="receipt-card fade-in success-pop">'
+        f'<div class="receipt-logo">{logo}</div>'
+        f'<div class="receipt-check anim-check">✓</div>'
+        f'<h2 class="receipt-title">Pago completado</h2>'
+        f'<p class="receipt-status-badge success">Pago completado</p>'
+        f'<p class="receipt-id">{html.escape(booking["id"])}</p>'
+        f'<hr class="receipt-divider"/>'
+        f'<div class="receipt-pro">{avatar}<div><strong>{html.escape(pro.get("name",""))}</strong>'
+        f'<br/><span class="support-text">{html.escape(booking.get("service_type",""))}</span></div></div>'
+        f'<p><strong>Turno:</strong> {html.escape(appt_label)}</p>'
+        f'<p><strong>Ubicación:</strong> {html.escape(location)}</p>'
+        f'<p><strong>Precio total:</strong> {format_ars(totals["total"])}</p>'
+        f'<p><strong>Seña abonada:</strong> {format_ars(totals["deposit"])}</p>'
+        f'<p><strong>Saldo abonado:</strong> {format_ars(totals["remaining"])}</p>'
+        f'<p><strong>Medio de pago:</strong> {html.escape(method)}</p>'
+        f'<p><strong>Referencia:</strong> {html.escape(booking.get("payment_reference",""))}</p>'
+        f'<p><strong>Operación:</strong> {html.escape(paid_at)}</p>'
+        f'</div>'
+    )
+
+
+def reservation_summary_card_html(
+    pro: dict,
+    service_type: str,
+    appt_label: str,
+    location: str,
+    total: float,
+    deposit: float,
+    remaining: float,
+    price_type: str,
+) -> str:
+    avatar = avatar_img_html(pro, 56)
+    return (
+        f'<div class="receipt-card fade-in" style="margin-bottom:1rem">'
+        f'<p class="form-step-num">Resumen de la reserva</p>'
+        f'<div class="receipt-pro">{avatar}<div><strong>{html.escape(pro.get("name",""))}</strong>'
+        f'<br/><span class="support-text">{html.escape(service_type)}</span></div></div>'
+        f'<p><strong>Fecha y horario:</strong> {html.escape(appt_label)}</p>'
+        f'<p><strong>Domicilio:</strong> {html.escape(location)}</p>'
+        f'<p><strong>Precio {"acordado" if "cerrado" in price_type.lower() else "orientativo"}:</strong> '
+        f'{format_ars(total)} · {html.escape(price_type)}</p>'
+        f'<p><strong>Seña para reservar (20%):</strong> {format_ars(deposit)}</p>'
+        f'<p><strong>Saldo después del servicio (80%):</strong> {format_ars(remaining)}</p>'
         f'</div>'
     )
 
 
 def booking_receipt_html(booking: dict, pro: dict, amount: float, appt_label: str, location: str) -> str:
-    if booking.get("payment_status") == "Pago confirmado":
+    from services.bookings import is_deposit_confirmed
+
+    if is_deposit_confirmed(booking):
         return booking_confirmed_receipt_html(booking, pro, amount, appt_label, location)
     return booking_pending_receipt_html(booking, pro, amount, appt_label, location)
 
@@ -418,13 +502,20 @@ def payment_receipt_html(booking: dict, amount: float) -> str:
 def tracking_road_html(
     current_status: str, flow: list[str], service_type: str = "", pro: dict | None = None,
 ) -> str:
-    legacy = {"Reserva confirmada": "Pago confirmado"}
+    legacy = {
+        "Reserva confirmada": "Seña confirmada",
+        "Pago confirmado": "Seña confirmada",
+        "Turno reservado": "Seña confirmada",
+    }
     current = legacy.get(current_status, current_status)
+    if current not in flow:
+        current = flow[0] if flow else current_status
     idx = flow.index(current) if current in flow else 0
-    positions = [4, 12, 38, 72, 86, 92]
+    n = max(len(flow) - 1, 1)
+    positions = [int(4 + (92 - 4) * i / n) for i in range(len(flow))]
     pct = positions[min(idx, len(positions) - 1)]
     fill_pct = pct
-    stage_icons = ["📅", "✓", "🚐", "🏠", "🔧", "✨"]
+    stage_icons = ["✓", "🚐", "🏠", "🔧", "✨", "💳", "✅"]
     markers = ""
     for i, status in enumerate(flow):
         if i < idx:
@@ -443,11 +534,11 @@ def tracking_road_html(
         traveller = avatar_img_html(pro, 36).replace('class="', 'class="road-pro-avatar ')
     else:
         traveller = '<span class="road-pro-traveller" title="Profesional">🚐</span>'
-    work = '<span class="road-work-tool">🔧</span>' if idx >= 4 else ""
+    work = '<span class="road-work-tool">🔧</span>' if idx >= 3 else ""
     house_cls = "road-house-fixed"
-    if idx >= 5:
+    if idx >= 4:
         house_cls += " road-house-done"
-    house = f'<div class="{house_cls}" title="Tu hogar">🏠✨</div>' if idx >= 5 else f'<div class="{house_cls}" title="Tu hogar">🏠</div>'
+    house = f'<div class="{house_cls}" title="Tu hogar">🏠✨</div>' if idx >= 4 else f'<div class="{house_cls}" title="Tu hogar">🏠</div>'
     return (
         f'<div class="tracking-road-v2 fade-in">'
         f'<div class="road-scene road-scene-ltr">'
@@ -509,14 +600,15 @@ def completed_service_receipt_html(booking: dict, pro: dict, rating: int, commen
 
 
 def render_chat_panel(booking: dict, pro: dict) -> None:
+    from services.bookings import is_deposit_confirmed
     from services.chat import USER_QUICK_MESSAGES, add_message, load_messages, seed_booking_chat, simulate_pro_reply
 
     bid = booking["id"]
-    paid = booking.get("payment_status") == "Pago confirmado"
-    if not paid and str(booking.get("chat_enabled", "")).lower() not in ("true", "1", "yes"):
-        st.info("El chat se habilitará cuando confirmes la reserva.")
+    chat_ok = is_deposit_confirmed(booking) or str(booking.get("chat_enabled", "")).lower() in ("true", "1", "yes")
+    if not chat_ok:
+        st.info("El chat se habilitará cuando se acredite la seña.")
         return
-    seed_booking_chat(bid, pro.get("name", "Profesional"), paid=paid)
+    seed_booking_chat(bid, pro.get("name", "Profesional"), paid=True)
     st.caption("Para tu seguridad y garantía, mantené la conversación dentro de SALVA.")
     pro_avatar = avatar_img_html(pro, 36)
     st.markdown(

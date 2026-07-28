@@ -30,12 +30,15 @@ PRO_REPLIES = {
 }
 
 SYSTEM_MESSAGES = {
-    "Turno reservado": "Turno reservado · Pago pendiente",
-    "Reserva confirmada": "Reserva confirmada",
+    "Turno reservado": "Turno reservado · Seña pendiente",
+    "Reserva confirmada": "Reserva confirmada · Seña acreditada",
+    "Seña confirmada": "Seña confirmada · Reserva activa",
     "Pago confirmado": "Pago confirmado",
     "Profesional en camino": "El profesional está en camino",
     "Profesional en el domicilio": "El profesional llegó al domicilio",
     "Servicio finalizado": "El servicio finalizó",
+    "Saldo pendiente": "Trabajo finalizado · Saldo pendiente",
+    "Pago completado": "Pago completado",
 }
 
 

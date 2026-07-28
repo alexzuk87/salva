@@ -22,10 +22,10 @@ from services.accounts import (
 )
 from services.auth import render_user_session
 from services.bookings import (
-    PAYMENT_CONFIRMED,
     SERVICE_STATUS_FLOW,
     appointment_label,
     get_booking,
+    is_deposit_confirmed,
     list_bookings,
     split_bookings_for_home,
 )
@@ -144,7 +144,7 @@ def _render_next_section(active, upcoming, recs) -> None:
                 st.caption(f"{booking['professional_name']} · {booking.get('service_status', '—')}")
                 if st.button("Ver seguimiento", key="mh_next_track", use_container_width=True):
                     open_booking_in_services(booking)
-                if booking.get("payment_status") == PAYMENT_CONFIRMED and st.button(
+                if is_deposit_confirmed(booking) and st.button(
                     "Abrir chat", key="mh_next_chat", use_container_width=True
                 ):
                     st.session_state.mh_chat_location = "next"
@@ -231,7 +231,7 @@ def _render_booking_list(bookings, key_prefix: str) -> None:
                 if st.button(action, key=f"mh_{key_prefix}_open_{booking['id']}", use_container_width=True):
                     open_booking_in_services(booking)
             with a2:
-                if booking.get("payment_status") == PAYMENT_CONFIRMED and st.button(
+                if is_deposit_confirmed(booking) and st.button(
                     "Abrir chat", key=f"mh_{key_prefix}_chat_{booking['id']}", use_container_width=True
                 ):
                     st.session_state.mh_chat_location = "next"

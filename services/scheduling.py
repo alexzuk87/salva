@@ -113,6 +113,20 @@ def format_appointment(appointment_date: str, appointment_time: str) -> str:
     return label
 
 
+def format_selected_turno(appointment_date: date | str, appointment_time: str) -> str:
+    """Confirmación compacta del turno (día en minúscula)."""
+    if isinstance(appointment_date, date):
+        date_str = appointment_date.isoformat()
+    else:
+        date_str = str(appointment_date or "")
+    base = format_appointment(date_str, appointment_time)
+    if not base or base == "—":
+        return ""
+    parts = base.split(" ", 1)
+    parts[0] = parts[0].lower()
+    return f"Turno seleccionado: {' '.join(parts)}"
+
+
 def min_appointment_date(urgency: str) -> date:
     today = date.today()
     if urgency in ("Emergencia", "Hoy"):

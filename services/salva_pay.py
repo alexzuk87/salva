@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from services.bookings import PAYMENT_CONFIRMED, PAYMENT_PENDING, load_bookings
+from services.bookings import is_fully_paid, load_bookings
 from services.formatting import format_ars
 from services.goals import total_saved
 
@@ -21,8 +21,9 @@ def payment_summary() -> dict:
     prices = pd.to_numeric(df.get("approved_price", df.get("initial_price", 0)), errors="coerce").fillna(0)
     df = df.copy()
     df["_price"] = prices
-    paid = df[df["payment_status"] == PAYMENT_CONFIRMED]
-    pending = df[df["payment_status"] != PAYMENT_CONFIRMED]
+    paid_mask = df.apply(lambda r: is_fully_paid(r.to_dict()), axis=1)
+    paid = df[paid_mask]
+    pending = df[~paid_mask]
     now_month = datetime.now().strftime("%Y-%m")
     month_paid = paid[paid["paid_at"].str.startswith(now_month, na=False)] if not paid.empty else paid
     return {
