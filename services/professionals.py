@@ -38,22 +38,28 @@ URGENCY_MULTIPLIERS = {
 
 # id, name, specialty, services, rating, jobs, ver, idv, mat, exp, price, ptype, avail, alias, avatar, eta, prov, city, coverage, hoods
 SEED = [
-    ("PRO001", "María González", "Plomera matriculada", "Plomería,Climatización", 4.9, 312, True, True, True, 12, 85000, "Precio orientativo", "08:00-20:00", "salva.maria.gonzalez", "pro001", 35, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA,GABA", "Palermo,Recoleta,Belgrano"),
-    ("PRO002", "Carlos Ruiz", "Electricista", "Electricidad,Reparación de electrodomésticos", 4.8, 245, True, True, False, 9, 95000, "Precio cerrado", "09:00-19:00", "salva.carlos.ruiz", "pro002", 40, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA", "Palermo,Villa Crespo,Almagro"),
+    # —— CABA / AMBA (base amplia para ≥5 resultados por zona) ——
+    ("PRO001", "María González", "Plomera matriculada", "Plomería,Climatización,Gasista", 4.9, 312, True, True, True, 12, 85000, "Precio orientativo", "08:00-20:00", "salva.maria.gonzalez", "pro001", 35, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA,GABA,Buenos Aires", "Palermo,Recoleta,Belgrano"),
+    ("PRO002", "Carlos Ruiz", "Electricista", "Electricidad,Reparación de electrodomésticos", 4.8, 245, True, True, False, 9, 95000, "Precio cerrado", "09:00-19:00", "salva.carlos.ruiz", "pro002", 40, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA,Buenos Aires", "Palermo,Villa Crespo,Almagro"),
     ("PRO003", "Ana Torres", "Especialista en limpieza", "Limpieza,Pintura", 4.7, 189, True, True, False, 7, 65000, "Precio cerrado", "08:00-18:00", "salva.ana.torres", "pro003", 30, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA", "Recoleta,San Telmo"),
-    ("PRO004", "Roberto Silva", "Técnico HVAC matriculado", "Climatización,Electricidad", 4.9, 278, True, True, True, 15, 110000, "Precio orientativo", "08:00-20:00", "salva.roberto.silva", "pro006", 25, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA", "Belgrano,Nuñez"),
-    ("PRO005", "Elena Vargas", "Plomera general", "Plomería,Mantenimiento general", 4.5, 98, True, True, False, 5, 70000, "Precio orientativo", "10:00-20:00", "salva.elena.vargas", "pro005", 50, "Buenos Aires", "La Plata", "Buenos Aires", "Centro,Gonnet"),
+    ("PRO004", "Roberto Silva", "Técnico HVAC matriculado", "Climatización,Electricidad,Gasista", 4.9, 278, True, True, True, 15, 110000, "Precio orientativo", "08:00-20:00", "salva.roberto.silva", "pro006", 25, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA,Buenos Aires", "Belgrano,Nuñez"),
+    ("PRO005", "Elena Vargas", "Plomera general", "Plomería,Mantenimiento general", 4.5, 98, True, True, False, 5, 70000, "Precio orientativo", "10:00-20:00", "salva.elena.vargas", "pro005", 50, "Buenos Aires", "La Plata", "Buenos Aires,CABA", "Centro,Gonnet"),
     ("PRO006", "Diego Herrera", "Pintor profesional", "Pintura,Mantenimiento general", 4.4, 87, True, True, False, 4, 55000, "Precio orientativo", "08:00-17:00", "salva.diego.herrera", "pro008", 55, "Buenos Aires", "Mar del Plata", "Buenos Aires", "Centro,Guemes"),
     ("PRO007", "Patricia Lima", "Limpieza y jardinería", "Limpieza,Jardinería", 4.6, 134, True, True, False, 6, 60000, "Precio cerrado", "08:00-18:00", "salva.patricia.lima", "pro007", 38, "Córdoba", "Córdoba", "Córdoba", "Centro,Nueva Córdoba"),
     ("PRO008", "Martín Acosta", "Electricista matriculado", "Electricidad,Climatización", 4.8, 201, True, True, True, 11, 92000, "Precio cerrado", "08:00-20:00", "salva.martin.acosta", "pro010", 42, "Córdoba", "Córdoba", "Córdoba,Villa Carlos Paz", "Centro,Alta Gracia"),
-    ("PRO009", "Lucía Fernández", "Plomera", "Plomería", 4.7, 156, True, True, False, 8, 78000, "Precio orientativo", "08:00-19:00", "salva.lucia.fernandez", "pro009", 45, "Santa Fe", "Rosario", "Santa Fe", "Centro,Pichincha"),
+    ("PRO009", "Lucía Fernández", "Plomera", "Plomería,Gasista", 4.7, 156, True, True, False, 8, 78000, "Precio orientativo", "08:00-19:00", "salva.lucia.fernandez", "pro009", 45, "Santa Fe", "Rosario", "Santa Fe", "Centro,Pichincha"),
     ("PRO010", "Jorge Pérez", "Técnico en electrodomésticos", "Reparación de electrodomésticos,Electricidad", 4.6, 143, True, True, False, 10, 88000, "Precio orientativo", "09:00-18:00", "salva.jorge.perez", "pro014", 48, "Santa Fe", "Rosario", "Santa Fe", "Centro,Fisherton"),
-    ("PRO011", "Valentina Ruiz", "Gasista matriculada", "Climatización,Mantenimiento general", 4.9, 267, True, True, True, 14, 105000, "Precio orientativo", "08:00-20:00", "salva.valentina.ruiz", "pro013", 32, "Mendoza", "Mendoza", "Mendoza", "Centro,Godoy Cruz"),
+    ("PRO011", "Valentina Ruiz", "Gasista matriculada", "Gasista,Climatización,Mantenimiento general", 4.9, 267, True, True, True, 14, 105000, "Precio orientativo", "08:00-20:00", "salva.valentina.ruiz", "pro013", 32, "Mendoza", "Mendoza", "Mendoza", "Centro,Godoy Cruz"),
     ("PRO012", "Gabriel Soto", "Jardinero", "Jardinería,Mantenimiento general", 4.5, 112, True, True, False, 7, 72000, "Precio orientativo", "07:00-17:00", "salva.gabriel.soto", "pro012", 50, "Mendoza", "Mendoza", "Mendoza", "Centro,Luján"),
-    ("PRO013", "Camila Ríos", "Cerrajera", "Mantenimiento general", 4.7, 178, True, True, False, 9, 82000, "Precio cerrado", "00:00-23:59", "salva.camila.rios", "pro011", 28, "Tucumán", "San Miguel de Tucumán", "Tucumán", "Centro,Yerba Buena"),
-    ("PRO014", "Fernando Díaz", "Electricista", "Electricidad", 4.6, 165, True, True, True, 13, 98000, "Precio cerrado", "08:00-20:00", "salva.fernando.diaz", "pro002", 38, "Salta", "Salta", "Salta", "Centro,Grand Bourg"),
-    ("PRO015", "Sofía Navarro", "Plomera", "Plomería,Climatización", 4.8, 198, True, True, True, 10, 90000, "Precio orientativo", "08:00-19:00", "salva.sofia.navarro", "pro001", 36, "Neuquén", "Neuquén", "Neuquén", "Centro,Cipolletti"),
+    ("PRO013", "Camila Ríos", "Cerrajera", "Mantenimiento general", 4.7, 178, True, True, False, 9, 82000, "Precio cerrado", "00:00-23:59", "salva.camila.rios", "pro011", 28, "Tucumán", "San Miguel de Tucumán", "Tucumán,CABA", "Centro,Yerba Buena"),
+    ("PRO014", "Fernando Díaz", "Electricista", "Electricidad,Reparación de electrodomésticos", 4.6, 165, True, True, True, 13, 98000, "Precio cerrado", "08:00-20:00", "salva.fernando.diaz", "pro002", 38, "Salta", "Salta", "Salta", "Centro,Grand Bourg"),
+    ("PRO015", "Sofía Navarro", "Plomera", "Plomería,Climatización", 4.8, 198, True, True, True, 10, 90000, "Precio orientativo", "08:00-19:00", "salva.sofia.navarro", "pro001", 36, "Neuquén", "Neuquén", "Neuquén,CABA", "Centro,Cipolletti"),
     ("PRO016", "Ricardo Moya", "Pintor y albañil", "Pintura,Mantenimiento general", 4.4, 95, True, True, False, 6, 58000, "Precio orientativo", "08:00-18:00", "salva.ricardo.moya", "pro004", 52, "Chubut", "Comodoro Rivadavia", "Chubut", "Centro,Km 3"),
+    # —— Nuevos (20 total): multi-oficio y cobertura CABA ——
+    ("PRO017", "Nicolás Blanco", "Gasista e instalador", "Gasista,Plomería", 4.7, 142, True, True, True, 9, 99000, "Precio orientativo", "08:00-20:00", "salva.nicolas.blanco", "pro013", 33, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA,Buenos Aires", "Caballito,Flores"),
+    ("PRO018", "Julieta Méndez", "Cerrajera y carpintera", "Mantenimiento general,Pintura", 4.6, 121, True, True, False, 8, 76000, "Precio cerrado", "08:00-21:00", "salva.julieta.mendez", "pro011", 36, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA", "Palermo,Colegiales"),
+    ("PRO019", "Andrés Quiroga", "Técnico de aires y electrodomésticos", "Climatización,Reparación de electrodomésticos,Electricidad", 4.8, 210, True, True, True, 11, 102000, "Precio orientativo", "08:00-20:00", "salva.andres.quiroga", "pro006", 28, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA,Buenos Aires", "Belgrano,Villa Urquiza"),
+    ("PRO020", "Marina Soto", "Limpieza profunda y jardinería", "Limpieza,Jardinería,Mantenimiento general", 4.5, 167, True, True, False, 7, 62000, "Precio cerrado", "07:00-18:00", "salva.marina.soto", "pro007", 40, "Ciudad Autónoma de Buenos Aires", "Ciudad Autónoma de Buenos Aires", "CABA", "Recoleta,Palermo"),
 ]
 
 BADGE_TOOLTIP = "Información simulada para este prototipo académico."
@@ -86,13 +92,19 @@ def seed_professionals() -> None:
         raw.at[idx, "name"] = r[1]
         raw.at[idx, "specialty"] = r[2]
         raw.at[idx, "service_types"] = r[3]
+        raw.at[idx, "verified"] = str(r[6])
+        raw.at[idx, "identity_verified"] = str(r[7])
+        raw.at[idx, "matricula_verified"] = str(r[8])
+        raw.at[idx, "base_price"] = str(r[10])
+        raw.at[idx, "price_type"] = r[11]
         raw.at[idx, "availability"] = r[12]
+        raw.at[idx, "province"] = r[16]
+        raw.at[idx, "city"] = r[17]
+        raw.at[idx, "coverage_cities"] = r[18]
+        raw.at[idx, "neighborhoods"] = r[19]
+        raw.at[idx, "eta_base_minutes"] = str(r[15])
         if "pravatar" in str(row.get("photo_url", "")) or not str(row.get("photo_url", "")).startswith("assets/professionals"):
             raw.at[idx, "photo_url"] = f"assets/professionals/{pid.lower()}.jpg"
-        if not str(row.get("province", "")).strip():
-            raw.at[idx, "province"] = r[16]
-            raw.at[idx, "city"] = r[17]
-            raw.at[idx, "coverage_cities"] = r[18]
         raw.at[idx, "whatsapp"] = ""
     write_csv(PROFESSIONALS_FILE, raw[PROFESSIONAL_COLUMNS])
     existing_ids = set(raw["id"].tolist())
@@ -103,11 +115,11 @@ def seed_professionals() -> None:
         avatar = r[14]
         new_rows.append({
             "id": r[0], "name": r[1], "specialty": r[2], "service_types": r[3],
-            "rating": r[4], "completed_jobs": r[5], "verified": r[6],
-            "identity_verified": r[7], "matricula_verified": r[8],
-            "experience_years": r[9], "base_price": r[10], "price_type": r[11],
+            "rating": str(r[4]), "completed_jobs": str(r[5]), "verified": str(r[6]),
+            "identity_verified": str(r[7]), "matricula_verified": str(r[8]),
+            "experience_years": str(r[9]), "base_price": str(r[10]), "price_type": r[11],
             "availability": r[12], "bank_alias": r[13], "photo_url": f"assets/professionals/{r[0].lower()}.jpg",
-            "whatsapp": "", "eta_base_minutes": r[15], "province": r[16],
+            "whatsapp": "", "eta_base_minutes": str(r[15]), "province": r[16],
             "city": r[17], "coverage_cities": r[18], "neighborhoods": r[19],
         })
     if new_rows:
@@ -120,11 +132,11 @@ def _write_seed() -> None:
         avatar = r[14]
         rows.append({
             "id": r[0], "name": r[1], "specialty": r[2], "service_types": r[3],
-            "rating": r[4], "completed_jobs": r[5], "verified": r[6],
-            "identity_verified": r[7], "matricula_verified": r[8],
-            "experience_years": r[9], "base_price": r[10], "price_type": r[11],
+            "rating": str(r[4]), "completed_jobs": str(r[5]), "verified": str(r[6]),
+            "identity_verified": str(r[7]), "matricula_verified": str(r[8]),
+            "experience_years": str(r[9]), "base_price": str(r[10]), "price_type": r[11],
             "availability": r[12], "bank_alias": r[13], "photo_url": f"assets/professionals/{r[0].lower()}.jpg",
-            "whatsapp": "", "eta_base_minutes": r[15], "province": r[16],
+            "whatsapp": "", "eta_base_minutes": str(r[15]), "province": r[16],
             "city": r[17], "coverage_cities": r[18], "neighborhoods": r[19],
         })
     write_csv(PROFESSIONALS_FILE, pd.DataFrame(rows))
@@ -157,6 +169,9 @@ def estimate_arrival(urgency: str, eta_base: int, slot_match: bool) -> str:
     return f"{base + 15}–{base + 45} min" if slot_match else "En horario acordado"
 
 
+MIN_RECOMMENDED = 5
+
+
 def recommend_professionals(
     service_type: str,
     urgency: str,
@@ -166,6 +181,7 @@ def recommend_professionals(
     locality: str = "",
     verified_only: bool = True,
 ) -> pd.DataFrame:
+    """Recomienda profesionales del oficio; garantiza al menos MIN_RECOMMENDED cuando existan."""
     from services.service_categories import category_match_terms, category_specialty_keywords
 
     df = load_professionals()
@@ -179,36 +195,83 @@ def recommend_professionals(
         specialty = str(row.get("specialty", "")).casefold()
         return any(kw in specialty for kw in specialty_kw)
 
+    def _enrich(frame: pd.DataFrame) -> pd.DataFrame:
+        out = frame.copy()
+        if out.empty:
+            return out
+        out["estimated_price"] = out["base_price"].apply(lambda p: estimate_price(p, urgency))
+        out["slot_match"] = True
+        out["verified_reviews"] = out["id"].apply(count_verified_reviews)
+        out["neighborhood_jobs"] = out["completed_jobs"].apply(lambda j: max(int(j or 0) // 6, 12))
+        out["eta_label"] = out.apply(
+            lambda r: estimate_arrival(urgency, r["eta_base_minutes"], r["slot_match"]), axis=1
+        )
+        out["eta_minutes"] = out["eta_base_minutes"]
+        return out
+
     mask = df.apply(_matches, axis=1)
-    candidates = df[mask].copy()
-    if verified_only:
-        candidates = candidates[candidates["verified"]]
-    if province:
+    service_pool = df[mask].copy()
+    if verified_only and not service_pool.empty:
+        verified_pool = service_pool[service_pool["verified"]]
+        if not verified_pool.empty:
+            service_pool = verified_pool
+
+    candidates = service_pool
+    if province and not candidates.empty:
         prov_match = candidates["province"].eq(province) | candidates["coverage_cities"].apply(
             lambda c: province in [x.strip() for x in str(c).split(",")]
+            or "CABA" in str(c) and "Buenos Aires" in province
+            or "Buenos Aires" in str(c) and "Buenos Aires" in province
         )
         if prov_match.any():
-            candidates = candidates[prov_match]
-    if locality:
+            narrowed = candidates[prov_match]
+            if len(narrowed) >= MIN_RECOMMENDED or candidates.empty:
+                candidates = narrowed
+            else:
+                # Mantener zona preferida y completar hasta el mínimo con el resto del oficio
+                extra = candidates[~prov_match]
+                candidates = pd.concat([narrowed, extra], ignore_index=True)
+
+    if locality and not candidates.empty:
         loc_match = candidates["city"].str.lower().eq(locality.lower()) | candidates["coverage_cities"].apply(
             lambda c: locality.lower() in str(c).lower()
         )
         if loc_match.any():
-            candidates = candidates[loc_match]
+            narrowed = candidates[loc_match]
+            if len(narrowed) >= MIN_RECOMMENDED:
+                candidates = narrowed
+            else:
+                extra = candidates[~loc_match]
+                candidates = pd.concat([narrowed, extra], ignore_index=True)
+
     if candidates.empty:
         candidates = df[mask].copy()
-        if verified_only:
-            candidates = candidates[candidates["verified"]]
+        if verified_only and not candidates.empty:
+            verified = candidates[candidates["verified"]]
+            if not verified.empty:
+                candidates = verified
 
-    candidates["estimated_price"] = candidates["base_price"].apply(lambda p: estimate_price(p, urgency))
-    candidates["slot_match"] = True
-    candidates["verified_reviews"] = candidates["id"].apply(count_verified_reviews)
-    candidates["neighborhood_jobs"] = candidates["completed_jobs"].apply(lambda j: max(int(j or 0) // 6, 12))
-    candidates["eta_label"] = candidates.apply(
-        lambda r: estimate_arrival(urgency, r["eta_base_minutes"], r["slot_match"]), axis=1
-    )
-    candidates["eta_minutes"] = candidates["eta_base_minutes"]
-    return candidates
+    # Completar hasta mínimo con otros del mismo oficio (sin duplicar)
+    if len(candidates) < MIN_RECOMMENDED and not service_pool.empty:
+        missing = service_pool[~service_pool["id"].isin(candidates["id"])]
+        need = MIN_RECOMMENDED - len(candidates)
+        if not missing.empty and need > 0:
+            candidates = pd.concat([candidates, missing.head(need)], ignore_index=True)
+
+    # Último recurso: otros verificados multi-oficio
+    if len(candidates) < MIN_RECOMMENDED:
+        others = df[~df["id"].isin(candidates["id"])].copy()
+        if verified_only and not others.empty:
+            others = others[others["verified"]]
+        need = MIN_RECOMMENDED - len(candidates)
+        if not others.empty and need > 0:
+            candidates = pd.concat([candidates, others.head(need)], ignore_index=True)
+
+    # Deduplicar por id preservando orden
+    if not candidates.empty:
+        candidates = candidates.drop_duplicates(subset=["id"], keep="first").reset_index(drop=True)
+
+    return _enrich(candidates)
 
 
 def sort_professionals(df: pd.DataFrame, sort_by: str) -> pd.DataFrame:
